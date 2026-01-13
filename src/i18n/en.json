@@ -1,0 +1,145 @@
+{
+  "app": {
+    "name": "DiscMap",
+    "tagline": "Create beautiful disc golf course maps"
+  },
+  "nav": {
+    "home": "Home",
+    "editor": "Editor",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "Your Courses",
+    "noCourses": "No courses yet",
+    "createFirst": "Create your first course to get started",
+    "newCourse": "New Course",
+    "importCourse": "Import Course",
+    "lastEdited": "Last edited"
+  },
+  "course": {
+    "name": "Course Name",
+    "location": "Location",
+    "description": "Description",
+    "designer": "Designer",
+    "holes": "Holes",
+    "difficulty": "Difficulty",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "professional": "Professional"
+  },
+  "hole": {
+    "number": "Hole {{number}}",
+    "par": "Par",
+    "distance": "Distance",
+    "notes": "Notes",
+    "rules": "Rules",
+    "addHole": "Add Hole",
+    "deleteHole": "Delete Hole"
+  },
+  "features": {
+    "tee": "Tee Pad",
+    "basket": "Basket",
+    "flightLine": "Flight Line",
+    "obZone": "Out of Bounds",
+    "fairway": "Fairway",
+    "dropzone": "Drop Zone",
+    "mandatory": "Mandatory"
+  },
+  "teePosition": {
+    "pro": "Pro",
+    "amateur": "Amateur",
+    "recreational": "Recreational"
+  },
+  "toolbar": {
+    "select": "Select",
+    "placeTee": "Place Tee",
+    "placeBasket": "Place Basket",
+    "drawFlightLine": "Draw Flight Line",
+    "drawOB": "Draw OB Zone",
+    "drawFairway": "Draw Fairway",
+    "placeDropzone": "Place Dropzone",
+    "placeMandatory": "Place Mandatory",
+    "undo": "Undo",
+    "redo": "Redo",
+    "export": "Export"
+  },
+  "editor": {
+    "courseInfo": "Course Info",
+    "holes": "Holes",
+    "style": "Style",
+    "layers": "Layers",
+    "properties": "Properties",
+    "noFeatureSelected": "No feature selected",
+    "clickToSelect": "Click on a feature to edit its properties"
+  },
+  "layers": {
+    "showAll": "Show All",
+    "hideAll": "Hide All",
+    "tees": "Tee Pads",
+    "baskets": "Baskets",
+    "flightLines": "Flight Lines",
+    "obZones": "OB Zones",
+    "fairways": "Fairways",
+    "dropzones": "Drop Zones",
+    "mandatories": "Mandatories"
+  },
+  "export": {
+    "title": "Export Map",
+    "format": "Format",
+    "size": "Size",
+    "options": "Options",
+    "includeBackground": "Include satellite background",
+    "includeLegend": "Include legend",
+    "includeTitle": "Include title",
+    "includeDistances": "Include distances",
+    "holes": "Holes to export",
+    "allHoles": "All holes",
+    "currentHole": "Current hole",
+    "selectedHoles": "Selected holes",
+    "download": "Download",
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "units": "Units",
+    "meters": "Meters",
+    "feet": "Feet",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "mapbox": "Mapbox",
+    "mapboxToken": "Mapbox Access Token",
+    "mapboxTokenHelp": "Get your free token at mapbox.com",
+    "autoSave": "Auto-save",
+    "autoSaveEnabled": "Enable auto-save",
+    "sidebarPosition": "Sidebar Position",
+    "left": "Left",
+    "right": "Right"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "confirm": "Confirm",
+    "close": "Close"
+  },
+  "messages": {
+    "courseSaved": "Course saved successfully",
+    "courseDeleted": "Course deleted",
+    "exportSuccess": "Map exported successfully",
+    "importSuccess": "Course imported successfully",
+    "importError": "Failed to import course",
+    "deleteConfirm": "Are you sure you want to delete this?",
+    "unsavedChanges": "You have unsaved changes"
+  },
+  "units": {
+    "m": "m",
+    "ft": "ft"
+  }
+}

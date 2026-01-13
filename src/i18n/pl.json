@@ -1,0 +1,145 @@
+{
+  "app": {
+    "name": "DiscMap",
+    "tagline": "Twórz piękne mapy pól disc golfowych"
+  },
+  "nav": {
+    "home": "Strona główna",
+    "editor": "Edytor",
+    "settings": "Ustawienia"
+  },
+  "home": {
+    "title": "Twoje Pola",
+    "noCourses": "Brak pól",
+    "createFirst": "Stwórz swoje pierwsze pole, aby zacząć",
+    "newCourse": "Nowe Pole",
+    "importCourse": "Importuj Pole",
+    "lastEdited": "Ostatnio edytowane"
+  },
+  "course": {
+    "name": "Nazwa Pola",
+    "location": "Lokalizacja",
+    "description": "Opis",
+    "designer": "Projektant",
+    "holes": "Dołki",
+    "difficulty": "Trudność",
+    "beginner": "Początkujący",
+    "intermediate": "Średni",
+    "advanced": "Zaawansowany",
+    "professional": "Profesjonalny"
+  },
+  "hole": {
+    "number": "Dołek {{number}}",
+    "par": "Par",
+    "distance": "Odległość",
+    "notes": "Notatki",
+    "rules": "Zasady",
+    "addHole": "Dodaj Dołek",
+    "deleteHole": "Usuń Dołek"
+  },
+  "features": {
+    "tee": "Tee Pad",
+    "basket": "Kosz",
+    "flightLine": "Linia Rzutu",
+    "obZone": "Strefa OB",
+    "fairway": "Fairway",
+    "dropzone": "Strefa Drop",
+    "mandatory": "Mando"
+  },
+  "teePosition": {
+    "pro": "Pro",
+    "amateur": "Amator",
+    "recreational": "Rekreacyjny"
+  },
+  "toolbar": {
+    "select": "Zaznacz",
+    "placeTee": "Postaw Tee",
+    "placeBasket": "Postaw Kosz",
+    "drawFlightLine": "Rysuj Linię Rzutu",
+    "drawOB": "Rysuj Strefę OB",
+    "drawFairway": "Rysuj Fairway",
+    "placeDropzone": "Postaw Dropzone",
+    "placeMandatory": "Postaw Mando",
+    "undo": "Cofnij",
+    "redo": "Ponów",
+    "export": "Eksportuj"
+  },
+  "editor": {
+    "courseInfo": "Info o Polu",
+    "holes": "Dołki",
+    "style": "Styl",
+    "layers": "Warstwy",
+    "properties": "Właściwości",
+    "noFeatureSelected": "Nie wybrano elementu",
+    "clickToSelect": "Kliknij na element, aby edytować jego właściwości"
+  },
+  "layers": {
+    "showAll": "Pokaż Wszystkie",
+    "hideAll": "Ukryj Wszystkie",
+    "tees": "Tee Pady",
+    "baskets": "Kosze",
+    "flightLines": "Linie Rzutów",
+    "obZones": "Strefy OB",
+    "fairways": "Fairwaye",
+    "dropzones": "Strefy Drop",
+    "mandatories": "Manda"
+  },
+  "export": {
+    "title": "Eksportuj Mapę",
+    "format": "Format",
+    "size": "Rozmiar",
+    "options": "Opcje",
+    "includeBackground": "Dołącz tło satelitarne",
+    "includeLegend": "Dołącz legendę",
+    "includeTitle": "Dołącz tytuł",
+    "includeDistances": "Dołącz odległości",
+    "holes": "Dołki do eksportu",
+    "allHoles": "Wszystkie dołki",
+    "currentHole": "Aktualny dołek",
+    "selectedHoles": "Wybrane dołki",
+    "download": "Pobierz",
+    "cancel": "Anuluj"
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "general": "Ogólne",
+    "units": "Jednostki",
+    "meters": "Metry",
+    "feet": "Stopy",
+    "language": "Język",
+    "theme": "Motyw",
+    "light": "Jasny",
+    "dark": "Ciemny",
+    "system": "Systemowy",
+    "mapbox": "Mapbox",
+    "mapboxToken": "Token Dostępu Mapbox",
+    "mapboxTokenHelp": "Uzyskaj darmowy token na mapbox.com",
+    "autoSave": "Auto-zapis",
+    "autoSaveEnabled": "Włącz auto-zapis",
+    "sidebarPosition": "Pozycja Panelu",
+    "left": "Lewa",
+    "right": "Prawa"
+  },
+  "actions": {
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "edit": "Edytuj",
+    "duplicate": "Duplikuj",
+    "confirm": "Potwierdź",
+    "close": "Zamknij"
+  },
+  "messages": {
+    "courseSaved": "Pole zapisane pomyślnie",
+    "courseDeleted": "Pole usunięte",
+    "exportSuccess": "Mapa wyeksportowana pomyślnie",
+    "importSuccess": "Pole zaimportowane pomyślnie",
+    "importError": "Nie udało się zaimportować pola",
+    "deleteConfirm": "Czy na pewno chcesz to usunąć?",
+    "unsavedChanges": "Masz niezapisane zmiany"
+  },
+  "units": {
+    "m": "m",
+    "ft": "ft"
+  }
+}
