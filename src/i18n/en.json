@@ -160,6 +160,25 @@
     "landmarks": "Landmarks",
     "annotations": "Annotations"
   },
+  "file": {
+    "menu": "File",
+    "importJson": "Import JSON...",
+    "exportJson": "Export JSON",
+    "exportSvg": "Export SVG..."
+  },
+  "import": {
+    "title": "Import Course",
+    "selectFile": "Select JSON file",
+    "dropOrClick": "Click to select file",
+    "holesCount": "{{count}} holes",
+    "hint": "The course will be imported with a new ID to avoid conflicts.",
+    "import": "Import",
+    "cancel": "Cancel",
+    "importing": "Importing...",
+    "invalidJson": "Invalid JSON file",
+    "readError": "Could not read file",
+    "importError": "Failed to import course"
+  },
   "export": {
     "title": "Export Map",
     "format": "Format",

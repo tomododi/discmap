@@ -160,6 +160,25 @@
     "landmarks": "Punkty Orientacyjne",
     "annotations": "Adnotacje"
   },
+  "file": {
+    "menu": "Plik",
+    "importJson": "Importuj JSON...",
+    "exportJson": "Eksportuj JSON",
+    "exportSvg": "Eksportuj SVG..."
+  },
+  "import": {
+    "title": "Importuj Pole",
+    "selectFile": "Wybierz plik JSON",
+    "dropOrClick": "Kliknij, aby wybrać plik",
+    "holesCount": "{{count}} dołków",
+    "hint": "Pole zostanie zaimportowane z nowym ID, aby uniknąć konfliktów.",
+    "import": "Importuj",
+    "cancel": "Anuluj",
+    "importing": "Importowanie...",
+    "invalidJson": "Nieprawidłowy plik JSON",
+    "readError": "Nie można odczytać pliku",
+    "importError": "Nie udało się zaimportować pola"
+  },
   "export": {
     "title": "Eksportuj Mapę",
     "format": "Format",

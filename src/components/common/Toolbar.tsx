@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   MousePointer2,
   RectangleHorizontal,
@@ -9,7 +10,10 @@ import {
   Type,
   Undo2,
   Redo2,
+  FolderOpen,
+  Upload,
   Download,
+  FileImage,
   SquareDashedBottom,
   Minus,
   Trees,
@@ -19,6 +23,8 @@ import {
 import { useEditorStore, useCourseStore } from '../../stores';
 import type { DrawMode } from '../../types/editor';
 import { ExportDialog } from '../export/ExportDialog';
+import { ImportDialog } from '../export/ImportDialog';
+import { downloadCourseJSON } from '../../utils/storage';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
 
 interface ToolConfig {
@@ -58,6 +64,7 @@ function ToolButton({ icon, label, active, onClick, onMouseEnter, onMouseLeave }
 export function Toolbar() {
   const { t } = useTranslation();
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [hoveredTool, setHoveredTool] = useState<DrawMode | null>(null);
   const [terrainMenuOpen, setTerrainMenuOpen] = useState(false);
   const terrainMenuRef = useRef<HTMLDivElement>(null);
@@ -67,6 +74,8 @@ export function Toolbar() {
   const pendingFlightLine = useEditorStore((s) => s.pendingFlightLine);
   const activeTerrainType = useEditorStore((s) => s.activeTerrainType);
   const setActiveTerrainType = useEditorStore((s) => s.setActiveTerrainType);
+  const activeCourseId = useEditorStore((s) => s.activeCourseId);
+  const course = useCourseStore((s) => activeCourseId ? s.courses[activeCourseId] : null);
   const undo = useCourseStore((s) => s.undo);
   const redo = useCourseStore((s) => s.redo);
   const undoStack = useCourseStore((s) => s.undoStack);
@@ -213,13 +222,56 @@ export function Toolbar() {
 
         <div className="w-px h-8 bg-gray-200 mx-2" />
 
-        <button
-          onClick={() => setExportDialogOpen(true)}
-          className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
-          title={t('toolbar.export')}
-        >
-          <Download size={20} />
-        </button>
+        {/* File Menu Dropdown */}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+              title={t('file.menu', 'File')}
+            >
+              <div className="flex items-center gap-0.5">
+                <FolderOpen size={20} />
+                <ChevronDown size={12} />
+              </div>
+              <span className="text-xs mt-1 hidden sm:block">{t('file.menu', 'File')}</span>
+            </button>
+          </DropdownMenu.Trigger>
+
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="bg-white rounded-xl shadow-xl border border-gray-200 p-1 min-w-[180px] z-50"
+              sideOffset={8}
+            >
+              <DropdownMenu.Item
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 cursor-pointer outline-none"
+                onSelect={() => setImportDialogOpen(true)}
+              >
+                <Upload size={16} />
+                {t('file.importJson', 'Import JSON...')}
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Item
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                onSelect={() => course && downloadCourseJSON(course)}
+                disabled={!course}
+              >
+                <Download size={16} />
+                {t('file.exportJson', 'Export JSON')}
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
+
+              <DropdownMenu.Item
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                onSelect={() => setExportDialogOpen(true)}
+                disabled={!course}
+              >
+                <FileImage size={16} />
+                {t('file.exportSvg', 'Export SVG...')}
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
 
       {/* Sliding tooltip */}
@@ -238,6 +290,7 @@ export function Toolbar() {
       </div>
 
       <ExportDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen} />
+      <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
     </div>
   );
 }
