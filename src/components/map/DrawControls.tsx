@@ -159,9 +159,9 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
         return {
           ...baseProps,
           type: 'mandatory',
-          rotation: 0, // Default pointing right
-          lineAngle: 90, // Default perpendicular to arrow
-          lineLength: 50, // Default 50 meters
+          rotation: 0, // Arrow pointing right (absolute)
+          lineAngle: 270, // Line pointing up (absolute, independent of arrow)
+          lineLength: 60, // Line length in pixels
         } as MandatoryProperties;
       case 'flightLine': {
         const flightLineColor = getDefaultFlightLineColor();

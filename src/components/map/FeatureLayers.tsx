@@ -10,7 +10,7 @@ import { BasketMarker } from './markers/BasketMarker';
 import { DropzoneMarker } from './markers/DropzoneMarker';
 import { MandatoryMarker } from './markers/MandatoryMarker';
 import { LandmarkMarker } from './markers/LandmarkMarker';
-import { calculateLineLength, calculateDestination } from '../../utils/geo';
+import { calculateLineLength } from '../../utils/geo';
 
 export function FeatureLayers() {
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
@@ -249,41 +249,6 @@ export function FeatureLayers() {
     features: featureList,
   });
 
-  // Create GeoJSON lines for mandatory boundaries
-  const mandatoryLines = mandatories.map((mando) => {
-    const coords = mando.geometry.coordinates as [number, number];
-    const rotation = mando.properties.rotation ?? 0;
-    const lineAngle = mando.properties.lineAngle ?? 90;
-    const lineLength = mando.properties.lineLength ?? 50;
-
-    // Convert screen rotation to geographic bearing
-    // Screen: 0=East, 90=South, 180=West, 270=North
-    // Geographic: 0=North, 90=East, 180=South, 270=West
-    // Geographic bearing = (screen rotation + 90) % 360
-    const totalScreenAngle = rotation + lineAngle;
-    const geographicBearing = (totalScreenAngle + 90) % 360;
-
-    // Calculate the end point of the line
-    const endPoint = calculateDestination(coords, geographicBearing, lineLength);
-
-    return {
-      type: 'Feature' as const,
-      geometry: {
-        type: 'LineString' as const,
-        coordinates: [coords, endPoint],
-      },
-      properties: {
-        id: `${mando.properties.id}-line`,
-        mandoId: mando.properties.id,
-      },
-    };
-  });
-
-  const mandatoryLinesCollection = {
-    type: 'FeatureCollection' as const,
-    features: mandatoryLines,
-  };
-
   return (
     <>
       {/* Infrastructure/Terrain (bottom-most layer) */}
@@ -520,21 +485,6 @@ export function FeatureLayers() {
         />
       </Source>
 
-      {/* Mandatory boundary lines (red dashed lines) */}
-      <Source id="mandatoryLines" type="geojson" data={mandatoryLinesCollection}>
-        <Layer
-          id="mandatoryLines"
-          type="line"
-          paint={{
-            'line-color': '#dc2626',
-            'line-width': 2,
-            'line-dasharray': [4, 2],
-          }}
-          layout={{
-            'line-cap': 'round',
-          }}
-        />
-      </Source>
 
       {/* Flight Line Distance Labels and Vertex Handles */}
       {flightLines.map((feature) => {

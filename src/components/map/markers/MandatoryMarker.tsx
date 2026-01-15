@@ -67,9 +67,9 @@ export function MandatoryMarker({
       title={selected ? 'Scroll to rotate arrow' : undefined}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" style={{ overflow: 'visible' }}>
-        {/* Red boundary line - rotates independently */}
-        <g transform={`rotate(${lineAngle} ${cx} ${cy})`}>
-          {/* Main line extending upward from center */}
+        {/* Red boundary line - rotates independently, dashed style */}
+        {/* Line is drawn pointing UP, so add 90° to align with coordinate system (0=right) */}
+        <g transform={`rotate(${lineAngle + 90} ${cx} ${cy})`}>
           <line
             x1={cx}
             y1={cy}
@@ -77,16 +77,7 @@ export function MandatoryMarker({
             y2={cy - displayLineLength}
             stroke={lineColor}
             strokeWidth={3 * s}
-            strokeLinecap="round"
-          />
-          {/* Cross bar at the end */}
-          <line
-            x1={cx - 8 * s}
-            y1={cy - displayLineLength}
-            x2={cx + 8 * s}
-            y2={cy - displayLineLength}
-            stroke={lineColor}
-            strokeWidth={3 * s}
+            strokeDasharray={`${6 * s} ${3 * s}`}
             strokeLinecap="round"
           />
         </g>

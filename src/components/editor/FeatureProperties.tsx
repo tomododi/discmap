@@ -7,6 +7,7 @@ import { DEFAULT_TEE_COLORS } from '../../types/course';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
 import { LANDMARK_DEFINITIONS, LANDMARK_CATEGORIES, getLandmarksByCategory } from '../../types/landmarks';
 import { Button } from '../common/Button';
+import { RotationKnob } from '../common/RotationKnob';
 
 export function FeatureProperties() {
   const { t } = useTranslation();
@@ -158,42 +159,18 @@ export function FeatureProperties() {
           </div>
           {/* Rotation control */}
           <div className="border-t border-gray-200 pt-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('tee.rotation')} ({(feature.properties as TeeFeature['properties']).rotation ?? 0}°)
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              {t('tee.rotation')}
             </label>
-            <input
-              type="range"
-              min="0"
-              max="359"
-              step="15"
-              value={(feature.properties as TeeFeature['properties']).rotation ?? 0}
-              onChange={(e) => handleUpdate({ rotation: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>→ 0°</span>
-              <span>↓ 90°</span>
-              <span>← 180°</span>
-              <span>↑ 270°</span>
+            <div className="flex justify-center">
+              <RotationKnob
+                value={(feature.properties as TeeFeature['properties']).rotation ?? 0}
+                onChange={(rotation) => handleUpdate({ rotation })}
+                color={feature.properties.color || course?.style.defaultTeeColor || '#dc2626'}
+                size={90}
+              />
             </div>
-            <div className="flex gap-2 mt-2">
-              {[0, 90, 180, 270].map((angle) => (
-                <button
-                  key={angle}
-                  onClick={() => handleUpdate({ rotation: angle })}
-                  className={`
-                    flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors
-                    ${(feature.properties as TeeFeature['properties']).rotation === angle
-                      ? 'bg-red-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {angle === 0 ? '→' : angle === 90 ? '↓' : angle === 180 ? '←' : '↑'}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">{t('tee.scrollToRotate')}</p>
+            <p className="text-xs text-gray-500 mt-2 text-center">{t('tee.scrollToRotate')}</p>
           </div>
         </div>
       )}
@@ -203,42 +180,18 @@ export function FeatureProperties() {
         <div className="space-y-3">
           {/* Rotation control */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('dropzone.rotation')} ({(feature.properties as DropzoneFeature['properties']).rotation ?? 0}°)
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              {t('dropzone.rotation')}
             </label>
-            <input
-              type="range"
-              min="0"
-              max="359"
-              step="15"
-              value={(feature.properties as DropzoneFeature['properties']).rotation ?? 0}
-              onChange={(e) => handleUpdate({ rotation: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>→ 0°</span>
-              <span>↓ 90°</span>
-              <span>← 180°</span>
-              <span>↑ 270°</span>
+            <div className="flex justify-center">
+              <RotationKnob
+                value={(feature.properties as DropzoneFeature['properties']).rotation ?? 0}
+                onChange={(rotation) => handleUpdate({ rotation })}
+                color="#f59e0b"
+                size={90}
+              />
             </div>
-            <div className="flex gap-2 mt-2">
-              {[0, 90, 180, 270].map((angle) => (
-                <button
-                  key={angle}
-                  onClick={() => handleUpdate({ rotation: angle })}
-                  className={`
-                    flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors
-                    ${(feature.properties as DropzoneFeature['properties']).rotation === angle
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {angle === 0 ? '→' : angle === 90 ? '↓' : angle === 180 ? '←' : '↑'}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">{t('dropzone.scrollToRotate')}</p>
+            <p className="text-xs text-gray-500 mt-2 text-center">{t('dropzone.scrollToRotate')}</p>
           </div>
         </div>
       )}
@@ -332,91 +285,42 @@ export function FeatureProperties() {
       {/* Mandatory properties */}
       {feature.properties.type === 'mandatory' && (
         <div className="space-y-3">
-          {/* Arrow rotation */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              <span className="inline-block w-3 h-3 mr-1 rounded" style={{ backgroundColor: '#8b5cf6' }} />
-              {t('mandatory.rotation')} ({(feature.properties as { rotation: number }).rotation ?? 0}°)
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="359"
-              step="15"
-              value={(feature.properties as { rotation: number }).rotation ?? 0}
-              onChange={(e) => handleUpdate({ rotation: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>→ 0°</span>
-              <span>↓ 90°</span>
-              <span>← 180°</span>
-              <span>↑ 270°</span>
+          {/* Both rotation knobs side by side */}
+          <div className="flex justify-center gap-4">
+            {/* Arrow rotation */}
+            <div className="text-center">
+              <label className="block text-xs font-medium text-gray-700 mb-2">
+                <span className="inline-block w-3 h-3 mr-1 rounded" style={{ backgroundColor: '#8b5cf6' }} />
+                {t('mandatory.rotation')}
+              </label>
+              <RotationKnob
+                value={(feature.properties as { rotation: number }).rotation ?? 0}
+                onChange={(rotation) => handleUpdate({ rotation })}
+                color="#8b5cf6"
+                size={80}
+              />
             </div>
-          </div>
-          <div className="flex gap-2">
-            {[0, 90, 180, 270].map((angle) => (
-              <button
-                key={angle}
-                onClick={() => handleUpdate({ rotation: angle })}
-                className={`
-                  flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors
-                  ${(feature.properties as { rotation: number }).rotation === angle
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }
-                `}
-              >
-                {angle === 0 ? '→' : angle === 90 ? '↓' : angle === 180 ? '←' : '↑'}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-gray-500">{t('mandatory.scrollToRotate')}</p>
 
-          {/* Line angle - now absolute 0-360 */}
-          <div className="border-t border-gray-200 pt-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              <span className="inline-block w-3 h-3 mr-1 rounded" style={{ backgroundColor: '#dc2626' }} />
-              {t('mandatory.lineAngle')} ({(feature.properties as { lineAngle?: number }).lineAngle ?? 270}°)
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="359"
-              step="15"
-              value={(feature.properties as { lineAngle?: number }).lineAngle ?? 270}
-              onChange={(e) => handleUpdate({ lineAngle: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>→ 0°</span>
-              <span>↓ 90°</span>
-              <span>← 180°</span>
-              <span>↑ 270°</span>
-            </div>
-            <div className="flex gap-2 mt-2">
-              {[0, 90, 180, 270].map((angle) => (
-                <button
-                  key={angle}
-                  onClick={() => handleUpdate({ lineAngle: angle })}
-                  className={`
-                    flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors
-                    ${(feature.properties as { lineAngle?: number }).lineAngle === angle
-                      ? 'bg-red-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {angle === 0 ? '→' : angle === 90 ? '↓' : angle === 180 ? '←' : '↑'}
-                </button>
-              ))}
+            {/* Line angle */}
+            <div className="text-center">
+              <label className="block text-xs font-medium text-gray-700 mb-2">
+                <span className="inline-block w-3 h-3 mr-1 rounded" style={{ backgroundColor: '#dc2626' }} />
+                {t('mandatory.lineAngle')}
+              </label>
+              <RotationKnob
+                value={(feature.properties as { lineAngle?: number }).lineAngle ?? 270}
+                onChange={(lineAngle) => handleUpdate({ lineAngle })}
+                color="#dc2626"
+                size={80}
+              />
             </div>
           </div>
+          <p className="text-xs text-gray-500 text-center">{t('mandatory.scrollToRotate')}</p>
 
           {/* Line length */}
-          <div>
+          <div className="border-t border-gray-200 pt-3">
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('mandatory.lineLength')} ({(feature.properties as { lineLength?: number }).lineLength ?? 50}px)
+              {t('mandatory.lineLength')} ({(feature.properties as { lineLength?: number }).lineLength ?? 60}px)
             </label>
             <input
               type="range"
@@ -887,42 +791,19 @@ export function FeatureProperties() {
 
           {/* Rotation control */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('landmarks.rotation', 'Rotation')} ({(feature.properties as LandmarkFeature['properties']).rotation ?? 0}°)
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              {t('landmarks.rotation', 'Rotation')}
             </label>
-            <input
-              type="range"
-              min="0"
-              max="359"
-              step="15"
-              value={(feature.properties as LandmarkFeature['properties']).rotation ?? 0}
-              onChange={(e) => handleUpdate({ rotation: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>0°</span>
-              <span>90°</span>
-              <span>180°</span>
-              <span>270°</span>
+            <div className="flex justify-center">
+              <RotationKnob
+                value={(feature.properties as LandmarkFeature['properties']).rotation ?? 0}
+                onChange={(rotation) => handleUpdate({ rotation })}
+                color={(feature.properties as LandmarkFeature['properties']).color ||
+                  LANDMARK_DEFINITIONS[(feature.properties as LandmarkFeature['properties']).landmarkType]?.defaultColor || '#f59e0b'}
+                size={80}
+              />
             </div>
-            <div className="flex gap-2 mt-2">
-              {[0, 90, 180, 270].map((angle) => (
-                <button
-                  key={angle}
-                  onClick={() => handleUpdate({ rotation: angle })}
-                  className={`
-                    flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors
-                    ${(feature.properties as LandmarkFeature['properties']).rotation === angle
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {angle}°
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">{t('landmarks.scrollToRotate', 'Use scroll wheel to rotate when selected')}</p>
+            <p className="text-xs text-gray-500 mt-2 text-center">{t('landmarks.scrollToRotate', 'Use scroll wheel to rotate when selected')}</p>
           </div>
 
           {/* Custom color */}

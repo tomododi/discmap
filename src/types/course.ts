@@ -43,9 +43,9 @@ export interface DropzoneProperties extends BaseFeatureProperties {
 
 export interface MandatoryProperties extends BaseFeatureProperties {
   type: 'mandatory';
-  rotation: number; // Rotation angle in degrees (0 = pointing right, 90 = pointing down, etc.)
-  lineAngle: number; // Angle of the boundary line relative to arrow (default 90 = perpendicular)
-  lineLength: number; // Length of the boundary line in meters (default 50)
+  rotation: number; // Arrow rotation in degrees (absolute: 0 = right, 90 = down, 180 = left, 270 = up)
+  lineAngle: number; // Line rotation in degrees (absolute, independent of arrow: 0 = right, 270 = up)
+  lineLength: number; // Line length in pixels for display
   penalty?: string;
 }
 
