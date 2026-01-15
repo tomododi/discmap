@@ -3,9 +3,9 @@ interface TeeMarkerProps {
   holeNumber?: number;
   color: string;
   name?: string;
-  rotation?: number;
   scale?: number;
-  onRotate?: (newRotation: number) => void;
+  rotation?: number; // Tee pad rotation angle (0 = arrow points right, 90 = down, etc.)
+  mapBearing?: number; // Current map bearing to counter-rotate
 }
 
 // Derive border color from main color (darker version)
@@ -33,7 +33,7 @@ function getTextColor(hex: string | undefined): string {
   return brightness > 128 ? '#000000' : '#ffffff';
 }
 
-export function TeeMarker({ selected, holeNumber, color, name, rotation = 0, scale = 1, onRotate }: TeeMarkerProps) {
+export function TeeMarker({ selected, holeNumber, color, name, scale = 1, rotation = 0, mapBearing = 0 }: TeeMarkerProps) {
   const bgColor = color;
   const borderColor = darkenColor(bgColor);
   const textColor = getTextColor(bgColor);
@@ -42,19 +42,9 @@ export function TeeMarker({ selected, holeNumber, color, name, rotation = 0, sca
   // Base dimensions
   const width = 36 * s;
   const height = 28 * s;
-  const cx = 18 * s;
-  const cy = 14 * s;
 
-  // Handle rotation via mouse wheel when selected
-  const handleWheel = (e: React.WheelEvent) => {
-    if (selected && onRotate) {
-      e.preventDefault();
-      e.stopPropagation();
-      const delta = e.deltaY > 0 ? 15 : -15; // 15 degree increments
-      const newRotation = (rotation + delta + 360) % 360;
-      onRotate(newRotation);
-    }
-  };
+  // Counter-rotate against map bearing, then apply feature rotation
+  const effectiveRotation = rotation - mapBearing;
 
   return (
     <div
@@ -62,36 +52,36 @@ export function TeeMarker({ selected, holeNumber, color, name, rotation = 0, sca
         cursor-pointer transition-transform hover:scale-110
         ${selected ? 'scale-125' : ''}
       `}
-      onWheel={handleWheel}
-      title={selected ? 'Scroll to rotate' : undefined}
+      style={{
+        transform: `rotate(${effectiveRotation}deg)`,
+      }}
     >
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" style={{ overflow: 'visible' }}>
-        {/* Rotated group for tee pad shape */}
-        <g transform={`rotate(${rotation} ${cx} ${cy})`}>
-          {/* Tee pad shape */}
-          <rect
-            x={2 * s}
-            y={4 * s}
-            width={32 * s}
-            height={20 * s}
-            rx={3 * s}
-            fill={bgColor}
-            stroke={selected ? '#3b82f6' : borderColor}
-            strokeWidth={selected ? 3 * s : 2 * s}
-          />
-          {/* Inner texture */}
-          <rect x={6 * s} y={8 * s} width={24 * s} height={12 * s} rx={2 * s} fill={borderColor} opacity="0.2" />
-          {/* Direction indicator arrow */}
-          <polygon
-            points={`${30 * s},${14 * s} ${26 * s},${11 * s} ${26 * s},${17 * s}`}
-            fill={textColor}
-            opacity="0.6"
-          />
-        </g>
-        {/* Hole number - not rotated, always readable */}
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none">
+        {/* Tee pad shape */}
+        <rect
+          x={2 * s}
+          y={4 * s}
+          width={32 * s}
+          height={20 * s}
+          rx={3 * s}
+          fill={bgColor}
+          stroke={selected ? '#3b82f6' : borderColor}
+          strokeWidth={selected ? 3 * s : 2 * s}
+        />
+        {/* Inner texture */}
+        <rect x={6 * s} y={8 * s} width={24 * s} height={12 * s} rx={2 * s} fill={borderColor} opacity="0.2" />
+
+        {/* Direction arrow on right short side */}
+        <polygon
+          points={`${30 * s},${14 * s} ${26 * s},${11 * s} ${26 * s},${17 * s}`}
+          fill={textColor}
+          opacity="0.7"
+        />
+
+        {/* Hole number - positioned left of arrow */}
         {holeNumber && (
           <text
-            x={cx}
+            x={15 * s}
             y={18 * s}
             textAnchor="middle"
             fontFamily="Arial, sans-serif"
@@ -103,11 +93,15 @@ export function TeeMarker({ selected, holeNumber, color, name, rotation = 0, sca
           </text>
         )}
       </svg>
-      {/* Name label */}
+      {/* Name label - counter-rotate to stay readable */}
       {name && (
         <div
           className="font-bold text-center -mt-1 uppercase"
-          style={{ color: borderColor, fontSize: `${8 * s}px` }}
+          style={{
+            color: borderColor,
+            fontSize: `${8 * s}px`,
+            transform: `rotate(${-rotation}deg)`,
+          }}
         >
           {name.slice(0, 3)}
         </div>

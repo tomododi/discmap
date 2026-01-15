@@ -5,9 +5,8 @@ interface LandmarkMarkerProps {
   landmarkType: LandmarkType;
   selected?: boolean;
   size?: number;
-  rotation?: number;
   color?: string;
-  onRotate?: (newRotation: number) => void;
+  mapBearing?: number;
 }
 
 // Helper to darken color
@@ -32,23 +31,16 @@ export function LandmarkMarker({
   landmarkType,
   selected = false,
   size = 1,
-  rotation = 0,
   color,
-  onRotate,
+  mapBearing = 0,
 }: LandmarkMarkerProps) {
   const def = LANDMARK_DEFINITIONS[landmarkType];
   const baseSize = def.defaultSize;
   const actualColor = color || def.defaultColor;
   const s = size;
 
-  // Handle wheel event for rotation
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!selected || !onRotate) return;
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 15 : -15;
-    const newRotation = (rotation + delta + 360) % 360;
-    onRotate(newRotation);
-  };
+  // Counter-rotate against map bearing to stay fixed
+  const counterRotation = -mapBearing;
 
   // Generate SVG based on landmark type
   const renderLandmarkSVG = () => {
@@ -328,11 +320,7 @@ export function LandmarkMarker({
         width={viewBoxSize * s}
         height={viewBoxSize * s}
         viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-        style={{
-          transform: `rotate(${rotation}deg)`,
-          cursor: 'pointer',
-        }}
-        onWheel={handleWheel}
+        style={{ cursor: 'pointer' }}
       >
         {renderContent()}
         {selected && (
@@ -357,6 +345,9 @@ export function LandmarkMarker({
         transition-transform hover:scale-110
         ${selected ? 'z-10' : ''}
       `}
+      style={{
+        transform: `rotate(${counterRotation}deg)`,
+      }}
       title={def.name}
     >
       {renderLandmarkSVG()}

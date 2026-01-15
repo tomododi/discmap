@@ -122,7 +122,7 @@ Three tee positions with distinct colors (configurable in CourseStyle):
 - Amateur (default orange): Intermediate
 - Recreational (default green): Beginner
 
-Tee position is stored in `TeeProperties.position` and `FlightLineProperties.position`. The active tee position for drawing is in `editorStore.activeTeePosition`.
+Tee position is stored in `TeeProperties.position` and `FlightLineProperties.position`.
 
 ### Distance Calculation
 

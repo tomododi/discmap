@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Source, Layer, Marker } from 'react-map-gl/maplibre';
 import type { MarkerDragEvent } from 'react-map-gl/maplibre';
-import { useCourseStore, useEditorStore } from '../../stores';
+import { useCourseStore, useEditorStore, useMapStore } from '../../stores';
 import { useSettingsStore } from '../../stores/settingsStore';
 import type { TeeFeature, BasketFeature, DropzoneFeature, MandatoryFeature, FlightLineFeature, AnnotationFeature, FlightLineProperties, DiscGolfFeature, InfrastructureFeature, OBLineFeature, LandmarkFeature } from '../../types/course';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
@@ -29,6 +29,7 @@ export function FeatureLayers() {
   const updateFeature = useCourseStore((s) => s.updateFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
   const units = useSettingsStore((s) => s.units);
+  const mapBearing = useMapStore((s) => s.viewState.bearing);
 
   // Update flight lines when tee or basket position changes
   const updateFlightLinesForHole = useCallback(
@@ -750,6 +751,7 @@ export function FeatureLayers() {
             longitude={coords[0]}
             latitude={coords[1]}
             anchor="center"
+            rotationAlignment="viewport"
             draggable={!isFlightLineMode}
             onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e)}
             onClick={(e) => {
@@ -766,6 +768,7 @@ export function FeatureLayers() {
               color={dzColor}
               rotation={feature.properties.rotation ?? 0}
               onRotate={(newRotation) => handleFeatureRotate(feature.properties.id, feature.properties.holeId, newRotation)}
+              mapBearing={mapBearing}
             />
           </Marker>
         );
@@ -777,6 +780,7 @@ export function FeatureLayers() {
           longitude={feature.geometry.coordinates[0]}
           latitude={feature.geometry.coordinates[1]}
           anchor="center"
+          rotationAlignment="viewport"
           draggable
           onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e)}
           onClick={(e) => {
@@ -785,12 +789,13 @@ export function FeatureLayers() {
           }}
         >
           <MandatoryMarker
-            rotation={feature.properties.rotation}
+            rotation={feature.properties.rotation ?? 0}
             lineAngle={feature.properties.lineAngle ?? 270}
             lineLength={feature.properties.lineLength ?? 60}
             selected={selectedFeatureId === feature.properties.id}
             color={style.mandatoryColor}
             onRotate={(newRotation) => handleFeatureRotate(feature.properties.id, feature.properties.holeId, newRotation)}
+            mapBearing={mapBearing}
           />
         </Marker>
       ))}
@@ -808,6 +813,7 @@ export function FeatureLayers() {
             longitude={coords[0]}
             latitude={coords[1]}
             anchor="center"
+            rotationAlignment="viewport"
             draggable={!isFlightLineMode}
             onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e, 'tee')}
             onClick={(e) => {
@@ -825,7 +831,7 @@ export function FeatureLayers() {
               color={teeColor}
               name={feature.properties.name}
               rotation={feature.properties.rotation ?? 0}
-              onRotate={(newRotation) => handleFeatureRotate(feature.properties.id, feature.properties.holeId, newRotation)}
+              mapBearing={mapBearing}
             />
           </Marker>
         );
@@ -842,6 +848,8 @@ export function FeatureLayers() {
             longitude={coords[0]}
             latitude={coords[1]}
             anchor="bottom"
+            offset={[0, 6]}
+            rotationAlignment="viewport"
             draggable={!isFlightLineMode}
             onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e, 'basket')}
             onClick={(e) => {
@@ -881,6 +889,7 @@ export function FeatureLayers() {
             longitude={feature.geometry.coordinates[0]}
             latitude={feature.geometry.coordinates[1]}
             anchor="center"
+            rotationAlignment="viewport"
             draggable
             onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e)}
             onClick={(e) => {
@@ -918,6 +927,7 @@ export function FeatureLayers() {
             longitude={feature.geometry.coordinates[0]}
             latitude={feature.geometry.coordinates[1]}
             anchor="center"
+            rotationAlignment="viewport"
             draggable
             onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e)}
             onClick={(e) => {
@@ -929,9 +939,8 @@ export function FeatureLayers() {
               landmarkType={props.landmarkType}
               selected={isSelected}
               size={props.size ?? 1}
-              rotation={props.rotation ?? 0}
               color={props.color}
-              onRotate={(newRotation) => handleFeatureRotate(feature.properties.id, feature.properties.holeId, newRotation)}
+              mapBearing={mapBearing}
             />
           </Marker>
         );

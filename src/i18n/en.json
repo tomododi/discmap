@@ -364,5 +364,39 @@
   "languages": {
     "en": "English",
     "pl": "Polski"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to DiscMap",
+      "description": "Create professional disc golf course maps with satellite imagery, custom markers, and beautiful SVG exports. Let's take a quick tour of the key features."
+    },
+    "map": {
+      "title": "Your Canvas",
+      "description": "This is where your course comes to life. Pan by dragging, zoom with scroll wheel or pinch gestures. The satellite imagery helps you trace real-world features accurately.",
+      "tip": "Pro tip: Hold Ctrl while dragging to rotate the map view"
+    },
+    "toolbar": {
+      "title": "Drawing Tools",
+      "description": "Everything you need to build your course. Place tee pads, baskets, and mandatory markers. Draw flight lines, OB zones, and terrain features. Each tool shows helpful hints when selected."
+    },
+    "sidebar": {
+      "title": "Course Management",
+      "description": "Manage holes, edit feature properties, customize colors, and control layer visibility. Click on the course name to rename it. Switch between tabs to access different editing panels."
+    },
+    "export": {
+      "title": "Export Your Work",
+      "description": "When you're ready, export your course as a beautiful SVG map. Choose from full course layouts or individual hole pages. Add terrain backgrounds, compass roses, and scale bars for a professional finish."
+    },
+    "complete": {
+      "title": "You're All Set!",
+      "description": "Start by placing a tee pad and basket on the first hole. Draw a flight line between them to see the distance. Your work auto-saves, so you can close the browser and pick up where you left off."
+    },
+    "start": "Let's Go",
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip Tour",
+    "finish": "Start Creating",
+    "keyboardHint": "to navigate",
+    "escHint": "to skip"
   }
 }

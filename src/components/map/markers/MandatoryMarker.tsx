@@ -8,6 +8,7 @@ interface MandatoryMarkerProps {
   scale?: number;
   onRotate?: (newRotation: number) => void;
   onLineAngleChange?: (newAngle: number) => void;
+  mapBearing?: number;
 }
 
 // Derive border color from main color (darker version)
@@ -34,6 +35,7 @@ export function MandatoryMarker({
   lineColor = defaultLineColor,
   scale = 1,
   onRotate,
+  mapBearing = 0,
 }: MandatoryMarkerProps) {
   const borderColor = darkenColor(color);
   const s = scale;
@@ -45,6 +47,10 @@ export function MandatoryMarker({
 
   // Line length for display (scaled)
   const displayLineLength = lineLength * s;
+
+  // Counter-rotate against map bearing
+  const effectiveRotation = rotation - mapBearing;
+  const effectiveLineAngle = lineAngle - mapBearing;
 
   // Handle rotation via mouse wheel when selected
   const handleWheel = (e: React.WheelEvent) => {
@@ -69,7 +75,7 @@ export function MandatoryMarker({
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" style={{ overflow: 'visible' }}>
         {/* Red boundary line - rotates independently, dashed style */}
         {/* Line is drawn pointing UP, so add 90° to align with coordinate system (0=right) */}
-        <g transform={`rotate(${lineAngle + 90} ${cx} ${cy})`}>
+        <g transform={`rotate(${effectiveLineAngle + 90} ${cx} ${cy})`}>
           <line
             x1={cx}
             y1={cy}
@@ -83,7 +89,7 @@ export function MandatoryMarker({
         </g>
 
         {/* Purple arrow - no circle, just arrow shape */}
-        <g transform={`rotate(${rotation} ${cx} ${cy})`}>
+        <g transform={`rotate(${effectiveRotation} ${cx} ${cy})`}>
           {/* Arrow body */}
           <path
             d={`

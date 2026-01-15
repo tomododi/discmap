@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MapContainer } from './components/map/MapContainer';
 import { Sidebar } from './components/common/Sidebar';
 import { Toolbar } from './components/common/Toolbar';
+import { OnboardingProvider, OnboardingOverlay } from './components/onboarding';
 import { useCourseStore, useEditorStore, useSettingsStore } from './stores';
 import { loadAllCourses, saveCourse } from './utils/storage';
 import { createEmptyCourse } from './types/course';
@@ -66,11 +67,14 @@ function App() {
   }, [activeCourseId, courses]);
 
   return (
-    <div className="h-screen w-screen relative overflow-hidden bg-gray-100">
-      <MapContainer />
-      <Toolbar />
-      <Sidebar />
-    </div>
+    <OnboardingProvider>
+      <div className="h-screen w-screen relative overflow-hidden bg-gray-100">
+        <MapContainer />
+        <Toolbar />
+        <Sidebar />
+        <OnboardingOverlay />
+      </div>
+    </OnboardingProvider>
   );
 }
 

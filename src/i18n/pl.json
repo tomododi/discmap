@@ -364,5 +364,39 @@
   "languages": {
     "en": "English",
     "pl": "Polski"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Witaj w DiscMap",
+      "description": "Twórz profesjonalne mapy pól disc golfowych z obrazami satelitarnymi, własnymi markerami i pięknymi eksportami SVG. Pokażemy Ci najważniejsze funkcje."
+    },
+    "map": {
+      "title": "Twoje Płótno",
+      "description": "Tutaj Twoje pole nabiera życia. Przesuwaj przeciągając, powiększaj kółkiem myszy lub gestami. Zdjęcia satelitarne pomagają dokładnie odwzorować rzeczywisty teren.",
+      "tip": "Porada: Przytrzymaj Ctrl podczas przeciągania, aby obrócić widok mapy"
+    },
+    "toolbar": {
+      "title": "Narzędzia Rysowania",
+      "description": "Wszystko, czego potrzebujesz do budowy pola. Stawiaj tee pady, kosze i manda. Rysuj linie rzutów, strefy OB i elementy terenu. Każde narzędzie pokazuje pomocne wskazówki."
+    },
+    "sidebar": {
+      "title": "Zarządzanie Polem",
+      "description": "Zarządzaj dołkami, edytuj właściwości elementów, dostosuj kolory i kontroluj widoczność warstw. Kliknij nazwę pola, aby ją zmienić. Przełączaj zakładki, aby uzyskać dostęp do różnych paneli."
+    },
+    "export": {
+      "title": "Eksportuj Swoją Pracę",
+      "description": "Gdy będziesz gotowy, wyeksportuj pole jako piękną mapę SVG. Wybierz pełne układy pola lub pojedyncze strony dołków. Dodaj tła terenu, róże kompasowe i skale dla profesjonalnego wykończenia."
+    },
+    "complete": {
+      "title": "Gotowe!",
+      "description": "Zacznij od postawienia tee pada i kosza na pierwszym dołku. Narysuj między nimi linię rzutu, aby zobaczyć odległość. Twoja praca zapisuje się automatycznie - możesz zamknąć przeglądarkę i wrócić później."
+    },
+    "start": "Zaczynamy",
+    "next": "Dalej",
+    "back": "Wstecz",
+    "skip": "Pomiń",
+    "finish": "Zacznij Tworzyć",
+    "keyboardHint": "nawigacja",
+    "escHint": "pomiń"
   }
 }

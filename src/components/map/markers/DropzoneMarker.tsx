@@ -4,6 +4,7 @@ interface DropzoneMarkerProps {
   rotation?: number;
   scale?: number;
   onRotate?: (newRotation: number) => void;
+  mapBearing?: number;
 }
 
 // Derive border color from main color (darker version)
@@ -33,7 +34,7 @@ function getTextColor(hex: string | undefined): string {
 
 const defaultColor = '#f59e0b';
 
-export function DropzoneMarker({ selected, color = defaultColor, rotation = 0, scale = 1, onRotate }: DropzoneMarkerProps) {
+export function DropzoneMarker({ selected, color = defaultColor, rotation = 0, scale = 1, onRotate, mapBearing = 0 }: DropzoneMarkerProps) {
   const borderColor = darkenColor(color);
   const textColor = getTextColor(color);
   const s = scale;
@@ -43,6 +44,9 @@ export function DropzoneMarker({ selected, color = defaultColor, rotation = 0, s
   const height = 24 * s;
   const cx = 18 * s;
   const cy = 12 * s;
+
+  // Counter-rotate against map bearing, then apply feature rotation
+  const effectiveRotation = rotation - mapBearing;
 
   // Handle rotation via mouse wheel when selected
   const handleWheel = (e: React.WheelEvent) => {
@@ -58,7 +62,7 @@ export function DropzoneMarker({ selected, color = defaultColor, rotation = 0, s
   return (
     <div
       className={`
-        cursor-pointer transition-transform hover:scale-110
+        cursor-pointer transition-transform hover:scale-110 relative
         ${selected ? 'scale-125' : ''}
       `}
       onWheel={handleWheel}
@@ -66,7 +70,7 @@ export function DropzoneMarker({ selected, color = defaultColor, rotation = 0, s
     >
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" style={{ overflow: 'visible' }}>
         {/* Rotated group for dropzone shape */}
-        <g transform={`rotate(${rotation} ${cx} ${cy})`}>
+        <g transform={`rotate(${effectiveRotation} ${cx} ${cy})`}>
           {/* Rectangle background */}
           <rect
             x={2 * s}
@@ -97,19 +101,21 @@ export function DropzoneMarker({ selected, color = defaultColor, rotation = 0, s
             opacity="0.6"
           />
         </g>
-        {/* DZ text - not rotated, always readable */}
-        <text
-          x={cx}
-          y={16 * s}
-          textAnchor="middle"
-          fontFamily="Arial, sans-serif"
-          fontWeight="bold"
-          fontSize={10 * s}
-          fill={textColor}
+      </svg>
+      {/* DZ text - always readable (outside SVG rotation) */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span
+          style={{
+            color: textColor,
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 'bold',
+            fontSize: `${10 * s}px`,
+            lineHeight: 1,
+          }}
         >
           DZ
-        </text>
-      </svg>
+        </span>
+      </div>
     </div>
   );
 }

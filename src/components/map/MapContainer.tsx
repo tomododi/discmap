@@ -28,6 +28,7 @@ export function MapContainer() {
   }, [setIsMapLoaded]);
 
   // Handle clicks on interactive layers (flight lines, OB zones, fairways)
+  // Also deselects when clicking on empty space
   const handleClick = useCallback(
     (evt: MapLayerMouseEvent) => {
       const features = evt.features;
@@ -37,6 +38,9 @@ export function MapContainer() {
         if (featureId) {
           setSelectedFeature(featureId);
         }
+      } else {
+        // Clicked on empty space - deselect
+        setSelectedFeature(null);
       }
     },
     [setSelectedFeature]
