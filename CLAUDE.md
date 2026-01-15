@@ -97,6 +97,11 @@ App.tsx
 - Auto-save to IndexedDB every 5 seconds (configurable in settings)
 - Storage keys prefixed with `discmap_course_`
 - Load on mount, save on course change via `src/utils/storage.ts`
+- **JSON Import/Export**: Courses can be exported to JSON files and imported back
+  - Export via `downloadCourseJSON(course)` - downloads `{course-name}.json`
+  - Import via `importCourseFromJSON(json)` - generates new UUID to avoid conflicts
+  - Validation via `validateCourseJSON(json)` - checks required fields
+- **Data Migration**: `migrateCourseStyle()` in storage.ts ensures older saved courses get new style properties from `DEFAULT_COURSE_STYLE`
 
 ## Key Patterns
 

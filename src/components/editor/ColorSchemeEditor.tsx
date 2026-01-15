@@ -122,7 +122,7 @@ export function ColorSchemeEditor() {
             onChange={(color) => handleStyleChange({ defaultTeeColor: color })}
           />
           <p className="text-xs text-gray-500 mt-2">
-            Individual tees can have custom colors set in their properties.
+            {t('style.teeColorHint')}
           </p>
         </div>
       </section>
@@ -205,7 +205,7 @@ export function ColorSchemeEditor() {
             onChange={(width) => handleStyleChange({ flightLineWidth: width })}
           />
           <p className="text-xs text-gray-500 mt-2">
-            Flight lines inherit color from their starting tee/dropzone.
+            {t('style.flightLineColorHint')}
           </p>
         </div>
       </section>

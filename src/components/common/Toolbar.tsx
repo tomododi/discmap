@@ -26,6 +26,7 @@ import { ExportDialog } from '../export/ExportDialog';
 import { ImportDialog } from '../export/ImportDialog';
 import { downloadCourseJSON } from '../../utils/storage';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
+import { getTerrainName } from '../../utils/i18nHelpers';
 
 interface ToolConfig {
   mode: DrawMode;
@@ -178,7 +179,7 @@ export function Toolbar() {
                             className="w-4 h-4 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: pattern.defaultColors.primary }}
                           />
-                          <span className="text-xs truncate">{pattern.name}</span>
+                          <span className="text-xs truncate">{getTerrainName(t, terrainType)}</span>
                         </button>
                       );
                     })}

@@ -3,6 +3,7 @@ import { Trees, Waves, Mountain, Footprints, MapPin, Info } from 'lucide-react';
 import { useCourseStore, useEditorStore } from '../../stores';
 import { TERRAIN_PATTERNS, getTerrainByCategory } from '../../types/terrain';
 import type { TerrainType, TerrainPattern } from '../../types/terrain';
+import { getTerrainName } from '../../utils/i18nHelpers';
 
 const categoryIcons: Record<TerrainPattern['category'], React.ReactNode> = {
   ground: <Mountain size={14} />,
@@ -11,12 +12,7 @@ const categoryIcons: Record<TerrainPattern['category'], React.ReactNode> = {
   surface: <Footprints size={14} />,
 };
 
-const categoryLabels: Record<TerrainPattern['category'], string> = {
-  ground: 'Ground',
-  vegetation: 'Vegetation',
-  water: 'Water',
-  surface: 'Surface',
-};
+// Category labels use t('terrain.categories.{category}')
 
 // Main terrain options for default background
 const defaultTerrainOptions: TerrainType[] = ['grass', 'roughGrass', 'forest', 'sand'];
@@ -56,7 +52,7 @@ export function TerrainEditor() {
           {t('terrain.defaultTerrainHint', 'This terrain will fill the entire map background when exporting.')}
         </p>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2">
           {defaultTerrainOptions.map((terrainType) => {
             const pattern = TERRAIN_PATTERNS[terrainType];
             const isActive = currentDefaultTerrain === terrainType;
@@ -66,7 +62,7 @@ export function TerrainEditor() {
                 key={terrainType}
                 onClick={() => handleDefaultTerrainChange(terrainType)}
                 className={`
-                  flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-all
+                  w-full flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-all
                   ${isActive
                     ? 'border-emerald-500 bg-emerald-50'
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
@@ -74,12 +70,10 @@ export function TerrainEditor() {
                 `}
               >
                 <div
-                  className="w-8 h-8 rounded-lg flex-shrink-0"
+                  className="w-10 h-10 rounded-lg flex-shrink-0"
                   style={{ backgroundColor: pattern.defaultColors.primary }}
                 />
-                <div>
-                  <div className="font-medium text-gray-900 text-sm">{pattern.name}</div>
-                </div>
+                <div className="font-medium text-gray-900">{getTerrainName(t, terrainType)}</div>
               </button>
             );
           })}
@@ -100,26 +94,26 @@ export function TerrainEditor() {
         </p>
 
         {(['vegetation', 'water', 'ground', 'surface'] as const).map((category) => (
-          <div key={category} className="mb-3">
-            <div className="flex items-center gap-2 mb-1.5">
+          <div key={category} className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
               <span className="text-gray-500">{categoryIcons[category]}</span>
-              <span className="text-xs font-medium text-gray-600">{categoryLabels[category]}</span>
+              <span className="text-sm font-medium text-gray-700">{t(`terrain.categories.${category}`)}</span>
             </div>
 
-            <div className="flex flex-wrap gap-1">
+            <div className="space-y-1">
               {getTerrainByCategory(category).map((terrainType) => {
                 const pattern = TERRAIN_PATTERNS[terrainType];
 
                 return (
                   <div
                     key={terrainType}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 text-xs text-gray-700"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 text-sm text-gray-700"
                   >
                     <div
-                      className="w-3 h-3 rounded-sm flex-shrink-0"
+                      className="w-5 h-5 rounded flex-shrink-0"
                       style={{ backgroundColor: pattern.defaultColors.primary }}
                     />
-                    <span>{pattern.name}</span>
+                    <span>{getTerrainName(t, terrainType)}</span>
                   </div>
                 );
               })}

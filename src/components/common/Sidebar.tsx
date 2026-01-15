@@ -8,6 +8,7 @@ import { LayerControls } from '../editor/LayerControls';
 import { FeatureProperties } from '../editor/FeatureProperties';
 import { ColorSchemeEditor } from '../editor/ColorSchemeEditor';
 import { LandmarkEditor } from '../editor/LandmarkEditor';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 type Tab = 'holes' | 'style' | 'layers' | 'properties' | 'landmarks';
 
@@ -137,12 +138,15 @@ export function Sidebar() {
             </div>
           )}
         </div>
-        <button
-          onClick={toggleSidebar}
-          className="p-1 rounded hover:bg-gray-100 flex-shrink-0 ml-2"
-        >
-          {sidebarPosition === 'left' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+          <LanguageSwitcher />
+          <button
+            onClick={toggleSidebar}
+            className="p-1 rounded hover:bg-gray-100"
+          >
+            {sidebarPosition === 'left' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

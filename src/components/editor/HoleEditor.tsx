@@ -57,7 +57,7 @@ export function HoleEditor() {
             type="text"
             value={hole.name || ''}
             onChange={(e) => handleNameChange(e.target.value)}
-            placeholder="Hole name (optional)"
+            placeholder={t('hole.namePlaceholder')}
             className="text-xs text-gray-500 bg-transparent border-none p-0 focus:ring-0 w-full"
           />
         </div>
@@ -88,7 +88,7 @@ export function HoleEditor() {
                   style={{ backgroundColor: tee.properties.color || course.style.defaultTeeColor }}
                 />
                 <span className="text-xs text-gray-700">
-                  {tee.properties.name || `Tee ${index + 1}`}
+                  {tee.properties.name || t('hole.teeNumber', { number: index + 1 })}
                 </span>
               </div>
             ))}
@@ -128,7 +128,7 @@ export function HoleEditor() {
         <textarea
           value={hole.notes || ''}
           onChange={(e) => handleNotesChange(e.target.value)}
-          placeholder="Add hole notes, local rules..."
+          placeholder={t('hole.notesPlaceholder')}
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"
           rows={2}
         />

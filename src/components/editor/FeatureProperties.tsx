@@ -8,6 +8,7 @@ import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
 import { LANDMARK_DEFINITIONS, LANDMARK_CATEGORIES, getLandmarksByCategory } from '../../types/landmarks';
 import { Button } from '../common/Button';
 import { RotationKnob } from '../common/RotationKnob';
+import { getTerrainName, getLandmarkName, getLandmarkCategoryName } from '../../utils/i18nHelpers';
 
 export function FeatureProperties() {
   const { t } = useTranslation();
@@ -200,15 +201,15 @@ export function FeatureProperties() {
       {feature.properties.type === 'obZone' && (
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Penalty</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">{t('obZone.penalty')}</label>
             <select
               value={(feature.properties as { penalty: string }).penalty}
               onChange={(e) => handleUpdate({ penalty: e.target.value as 'stroke' | 'rethrow' | 'drop' })}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="stroke">+1 Stroke</option>
-              <option value="rethrow">Re-throw</option>
-              <option value="drop">Drop Zone</option>
+              <option value="stroke">{t('obZone.stroke')}</option>
+              <option value="rethrow">{t('obZone.rethrow')}</option>
+              <option value="drop">{t('obZone.drop')}</option>
             </select>
           </div>
         </div>
@@ -218,7 +219,7 @@ export function FeatureProperties() {
       {feature.properties.type === 'obLine' && (
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">Fairway Side</label>
+            <label className="block text-xs font-medium text-gray-700 mb-2">{t('obLine.fairwaySide')}</label>
             <div className="flex gap-2">
               <button
                 onClick={() => handleUpdate({ fairwaySide: 'left' })}
@@ -228,7 +229,7 @@ export function FeatureProperties() {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                ← Left
+                {t('obLine.left')}
               </button>
               <button
                 onClick={() => handleUpdate({ fairwaySide: 'right' })}
@@ -238,11 +239,11 @@ export function FeatureProperties() {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Right →
+                {t('obLine.right')}
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Green = Fairway, Red = OB
+              {t('obLine.hint')}
             </p>
           </div>
         </div>
@@ -252,7 +253,7 @@ export function FeatureProperties() {
       {feature.properties.type === 'dropzoneArea' && (
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">Fairway Position</label>
+            <label className="block text-xs font-medium text-gray-700 mb-2">{t('dropzoneArea.fairwayPosition')}</label>
             <div className="flex gap-2">
               <button
                 onClick={() => handleUpdate({ fairwayInside: true })}
@@ -262,7 +263,7 @@ export function FeatureProperties() {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Inside
+                {t('dropzoneArea.inside')}
               </button>
               <button
                 onClick={() => handleUpdate({ fairwayInside: false })}
@@ -272,11 +273,11 @@ export function FeatureProperties() {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Outside
+                {t('dropzoneArea.outside')}
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Green = Fairway, Red = OB
+              {t('dropzoneArea.hint')}
             </p>
           </div>
         </div>
@@ -543,7 +544,7 @@ export function FeatureProperties() {
             <div>
               <div className="text-xs text-emerald-600 font-medium">{t('terrain.types', 'Terrain Type')}</div>
               <div className="text-lg font-bold text-emerald-700">
-                {TERRAIN_PATTERNS[(feature.properties as InfrastructureFeature['properties']).terrainType]?.name || 'Unknown'}
+                {getTerrainName(t, (feature.properties as InfrastructureFeature['properties']).terrainType)}
               </div>
             </div>
           </div>
@@ -560,7 +561,7 @@ export function FeatureProperties() {
                 return (
                   <button
                     key={terrainType}
-                    onClick={() => handleUpdate({ terrainType, label: pattern.name })}
+                    onClick={() => handleUpdate({ terrainType, label: getTerrainName(t, terrainType) })}
                     className={`
                       flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors
                       ${isActive ? 'bg-emerald-100 text-emerald-800 ring-2 ring-emerald-500' : 'hover:bg-gray-100 text-gray-700'}
@@ -570,7 +571,7 @@ export function FeatureProperties() {
                       className="w-4 h-4 rounded-sm flex-shrink-0"
                       style={{ backgroundColor: pattern.defaultColors.primary }}
                     />
-                    <span className="text-xs truncate">{pattern.name}</span>
+                    <span className="text-xs truncate">{getTerrainName(t, terrainType)}</span>
                   </button>
                 );
               })}
@@ -598,56 +599,19 @@ export function FeatureProperties() {
             </div>
           </div>
 
-          {/* Corner radius slider */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('terrain.cornerRadius', 'Corner Rounding')} ({(feature.properties as InfrastructureFeature['properties']).cornerRadius ?? 0}m)
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              step="5"
-              value={(feature.properties as InfrastructureFeature['properties']).cornerRadius ?? 0}
-              onChange={(e) => handleUpdate({ cornerRadius: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{t('terrain.sharp', 'Sharp')}</span>
-              <span>{t('terrain.rounded', 'Rounded')}</span>
-            </div>
-            <div className="flex gap-1 mt-2">
-              {[0, 10, 20, 30].map((radius) => (
-                <button
-                  key={radius}
-                  onClick={() => handleUpdate({ cornerRadius: radius })}
-                  className={`
-                    flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors
-                    ${(feature.properties as InfrastructureFeature['properties']).cornerRadius === radius
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {radius}m
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Node count info */}
+          {/* Vertex info */}
           <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
-            <p>{t('terrain.nodeCount', { count: ((feature.geometry as { coordinates: number[][][] }).coordinates[0]?.length ?? 0) - 1, defaultValue: `${((feature.geometry as { coordinates: number[][][] }).coordinates[0]?.length ?? 0) - 1} vertices` })}</p>
-            <p className="mt-1">{t('terrain.editHint', 'Drag vertices to reshape. Double-click to delete vertex.')}</p>
+            <p className="font-medium text-gray-700">{((feature.geometry as { coordinates: number[][][] }).coordinates[0]?.length ?? 0) - 1} {t('terrain.vertices', 'vertices')}</p>
+            <p className="mt-1">{t('terrain.editHint', 'Drag vertices to reshape. Click + to add. Double-click to remove.')}</p>
           </div>
 
           {/* Custom colors */}
           <div className="space-y-2">
             <label className="block text-xs font-medium text-gray-700">
-              {t('annotation.textColor', 'Custom Colors')} ({t('style.otherMarkers', 'optional')})
+              {t('terrain.customColors')}
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-600 w-16">Fill:</span>
+              <span className="text-xs text-gray-600 w-16">{t('terrain.fill')}</span>
               <input
                 type="color"
                 value={(feature.properties as InfrastructureFeature['properties']).customColors?.primary ||
@@ -669,11 +633,11 @@ export function FeatureProperties() {
                 })}
                 className="text-xs text-gray-500 hover:text-gray-700"
               >
-                Reset
+                {t('actions.reset')}
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-600 w-16">Border:</span>
+              <span className="text-xs text-gray-600 w-16">{t('terrain.border')}</span>
               <input
                 type="color"
                 value={(feature.properties as InfrastructureFeature['properties']).customColors?.secondary ||
@@ -695,7 +659,7 @@ export function FeatureProperties() {
                 })}
                 className="text-xs text-gray-500 hover:text-gray-700"
               >
-                Reset
+                {t('actions.reset')}
               </button>
             </div>
           </div>
@@ -713,7 +677,7 @@ export function FeatureProperties() {
             <div>
               <div className="text-xs text-amber-600 font-medium">{t('landmarks.title', 'Landmark')}</div>
               <div className="text-lg font-bold text-amber-700">
-                {LANDMARK_DEFINITIONS[(feature.properties as LandmarkFeature['properties']).landmarkType]?.name || 'Unknown'}
+                {getLandmarkName(t, (feature.properties as LandmarkFeature['properties']).landmarkType)}
               </div>
             </div>
           </div>
@@ -725,7 +689,7 @@ export function FeatureProperties() {
             </label>
             {LANDMARK_CATEGORIES.map((category) => (
               <div key={category.id} className="mb-2">
-                <div className="text-xs text-gray-500 mb-1">{category.name}</div>
+                <div className="text-xs text-gray-500 mb-1">{getLandmarkCategoryName(t, category.id)}</div>
                 <div className="flex flex-wrap gap-1">
                   {getLandmarksByCategory(category.id).map((landmarkType) => {
                     const def = LANDMARK_DEFINITIONS[landmarkType];
@@ -733,15 +697,15 @@ export function FeatureProperties() {
                     return (
                       <button
                         key={landmarkType}
-                        onClick={() => handleUpdate({ landmarkType, label: def.name })}
+                        onClick={() => handleUpdate({ landmarkType, label: getLandmarkName(t, landmarkType) })}
                         className={`
                           px-2 py-1 rounded-lg text-xs transition-colors flex items-center gap-1
                           ${isActive ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-500' : 'hover:bg-gray-100 text-gray-700'}
                         `}
-                        title={def.name}
+                        title={getLandmarkName(t, landmarkType)}
                       >
                         <span>{def.icon}</span>
-                        <span className="hidden sm:inline">{def.name}</span>
+                        <span className="hidden sm:inline">{getLandmarkName(t, landmarkType)}</span>
                       </button>
                     );
                   })}

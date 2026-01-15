@@ -35,7 +35,10 @@
     "notes": "Notes",
     "rules": "Rules",
     "addHole": "Add Hole",
-    "deleteHole": "Delete Hole"
+    "deleteHole": "Delete Hole",
+    "namePlaceholder": "Hole name (optional)",
+    "notesPlaceholder": "Add hole notes, local rules...",
+    "teeNumber": "Tee {{number}}"
   },
   "features": {
     "tee": "Tee Pad",
@@ -48,7 +51,8 @@
     "mandatory": "Mandatory",
     "annotation": "Annotation",
     "infrastructure": "Terrain",
-    "landmark": "Landmark"
+    "landmark": "Landmark",
+    "obLine": "OB Line"
   },
   "teePosition": {
     "pro": "Pro",
@@ -129,7 +133,8 @@
     "clickToSelect": "Click on a feature to edit its properties",
     "teeName": "Tee Name",
     "teeNamePlaceholder": "e.g., Red, White, Blue...",
-    "addNotes": "Add notes..."
+    "addNotes": "Add notes...",
+    "noCourse": "No course selected"
   },
   "style": {
     "basketTop": "Top Band",
@@ -142,7 +147,10 @@
     "lineColor": "Line Color",
     "lineWidth": "Line Width",
     "otherMarkers": "Other Markers",
-    "teeColor": "Tee Color"
+    "teeColor": "Tee Color",
+    "teeColorHint": "Individual tees can have custom colors set in their properties.",
+    "flightLineColorHint": "Flight lines inherit color from their starting tee/dropzone.",
+    "opacity": "Opacity"
   },
   "layers": {
     "showAll": "Show All",
@@ -231,7 +239,8 @@
     "edit": "Edit",
     "duplicate": "Duplicate",
     "confirm": "Confirm",
-    "close": "Close"
+    "close": "Close",
+    "reset": "Reset to default"
   },
   "messages": {
     "courseSaved": "Course saved successfully",
@@ -246,15 +255,55 @@
     "m": "m",
     "ft": "ft"
   },
+  "obZone": {
+    "penalty": "Penalty",
+    "stroke": "+1 Stroke",
+    "rethrow": "Re-throw",
+    "drop": "Drop Zone"
+  },
+  "obLine": {
+    "fairwaySide": "Fairway Side",
+    "left": "← Left",
+    "right": "Right →",
+    "hint": "Green = Fairway, Red = OB"
+  },
+  "dropzoneArea": {
+    "fairwayPosition": "Fairway Position",
+    "inside": "Inside",
+    "outside": "Outside",
+    "hint": "Green = Fairway, Red = OB"
+  },
   "terrain": {
     "theme": "Map Theme",
-    "types": "Available Terrain",
+    "types": "Terrain Type",
+    "selectTerrain": "Select Terrain",
+    "changeTerrain": "Change Terrain Type",
     "hint": "Draw terrain areas using the polygon tool after selecting a terrain type from the toolbar.",
     "exportHint": "Theme will be applied when exporting SVG maps.",
-    "ground": "Ground",
-    "vegetation": "Vegetation",
-    "water": "Water",
-    "surface": "Surface",
+    "defaultTerrain": "Default Background",
+    "defaultTerrainHint": "This terrain will fill the entire map background when exporting.",
+    "availableTerrains": "Drawable Terrains",
+    "drawHint": "Select a terrain from the toolbar, then draw polygons on the map. These will appear on top of the default background.",
+    "layeringTitle": "How terrain layering works:",
+    "layer1": "Default terrain fills the entire background",
+    "layer2": "Drawn terrain polygons appear on top",
+    "layer3": "Game features (tees, baskets, etc.) are on top",
+    "cornerRadius": "Corner Rounding",
+    "sharp": "Sharp",
+    "rounded": "Rounded",
+    "nodeCount": "{{count}} vertices",
+    "vertices": "vertices",
+    "editHint": "Drag vertices to reshape. Double-click to delete vertex.",
+    "cornerRadiusHint": "Only visible in SVG export, not on map preview",
+    "customColors": "Custom Colors",
+    "fill": "Fill:",
+    "border": "Border:",
+    "categories": {
+      "ground": "Ground",
+      "vegetation": "Vegetation",
+      "water": "Water",
+      "surface": "Surface"
+    },
     "grass": "Grass",
     "roughGrass": "Rough Grass",
     "forest": "Forest / Trees",
@@ -278,6 +327,42 @@
     "size": "Size",
     "rotation": "Rotation",
     "customColor": "Custom Color",
-    "scrollToRotate": "Use scroll wheel to rotate when selected"
+    "scrollToRotate": "Use scroll wheel to rotate when selected",
+    "categories": {
+      "amenities": "Amenities",
+      "nature": "Nature",
+      "signage": "Signage",
+      "hazards": "Hazards",
+      "structures": "Structures"
+    },
+    "types": {
+      "parking": "Parking",
+      "restroom": "Restroom",
+      "bench": "Bench",
+      "picnicTable": "Picnic Table",
+      "trashCan": "Trash Can",
+      "waterFountain": "Water Fountain",
+      "tree": "Tree",
+      "treeGroup": "Tree Group",
+      "bush": "Bush",
+      "flower": "Flowers",
+      "rock": "Rock",
+      "stump": "Tree Stump",
+      "infoSign": "Info Sign",
+      "holeSign": "Hole Sign",
+      "directionSign": "Direction Sign",
+      "warningSign": "Warning Sign",
+      "fence": "Fence Post",
+      "post": "Post/Pole",
+      "electricBox": "Electric Box",
+      "shelter": "Shelter/Pavilion",
+      "bridge": "Bridge",
+      "stairs": "Stairs",
+      "path": "Path Marker"
+    }
+  },
+  "languages": {
+    "en": "English",
+    "pl": "Polski"
   }
 }

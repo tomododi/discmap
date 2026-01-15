@@ -159,6 +159,150 @@ export function FeatureLayers() {
     [activeCourseId, course, updateFeatureGeometry, saveSnapshot]
   );
 
+  // Handler for dragging polygon vertices (OB zones, fairways, infrastructure, dropzone areas)
+  const handlePolygonVertexDrag = useCallback(
+    (featureId: string, holeId: string, vertexIndex: number, event: MarkerDragEvent) => {
+      if (!activeCourseId || !course) return;
+
+      const hole = course.holes.find((h) => h.id === holeId);
+      const feature = hole?.features.find((f) => f.properties.id === featureId);
+      if (!feature || feature.geometry.type !== 'Polygon') return;
+
+      const coords = [...(feature.geometry as { coordinates: number[][][] }).coordinates[0]] as [number, number][];
+      coords[vertexIndex] = [event.lngLat.lng, event.lngLat.lat];
+
+      // If editing first vertex, also update last vertex (closed ring)
+      if (vertexIndex === 0) {
+        coords[coords.length - 1] = [event.lngLat.lng, event.lngLat.lat];
+      }
+      // If editing last vertex, also update first vertex
+      if (vertexIndex === coords.length - 1) {
+        coords[0] = [event.lngLat.lng, event.lngLat.lat];
+      }
+
+      saveSnapshot(activeCourseId);
+      updateFeatureGeometry(activeCourseId, holeId, featureId, [coords]);
+    },
+    [activeCourseId, course, updateFeatureGeometry, saveSnapshot]
+  );
+
+  // Handler for adding a new node to polygon
+  const handleAddPolygonNode = useCallback(
+    (featureId: string, holeId: string, afterIndex: number) => {
+      if (!activeCourseId || !course) return;
+
+      const hole = course.holes.find((h) => h.id === holeId);
+      const feature = hole?.features.find((f) => f.properties.id === featureId);
+      if (!feature || feature.geometry.type !== 'Polygon') return;
+
+      const coords = [...(feature.geometry as { coordinates: number[][][] }).coordinates[0]] as [number, number][];
+
+      // Calculate midpoint between afterIndex and afterIndex + 1
+      const p1 = coords[afterIndex];
+      const p2 = coords[(afterIndex + 1) % coords.length];
+      const midpoint: [number, number] = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+
+      // Insert new node after afterIndex
+      coords.splice(afterIndex + 1, 0, midpoint);
+
+      saveSnapshot(activeCourseId);
+      updateFeatureGeometry(activeCourseId, holeId, featureId, [coords]);
+    },
+    [activeCourseId, course, updateFeatureGeometry, saveSnapshot]
+  );
+
+  // Handler for removing a node from polygon
+  const handleRemovePolygonNode = useCallback(
+    (featureId: string, holeId: string, nodeIndex: number) => {
+      if (!activeCourseId || !course) return;
+
+      const hole = course.holes.find((h) => h.id === holeId);
+      const feature = hole?.features.find((f) => f.properties.id === featureId);
+      if (!feature || feature.geometry.type !== 'Polygon') return;
+
+      const coords = [...(feature.geometry as { coordinates: number[][][] }).coordinates[0]] as [number, number][];
+
+      // Don't allow removing if only 3 vertices left (4 points including closing point)
+      if (coords.length <= 4) return;
+
+      // If removing the first/last vertex (they're the same), handle specially
+      if (nodeIndex === 0 || nodeIndex === coords.length - 1) {
+        coords.splice(0, 1);
+        coords[coords.length - 1] = coords[0]; // Update closing point
+      } else {
+        coords.splice(nodeIndex, 1);
+      }
+
+      saveSnapshot(activeCourseId);
+      updateFeatureGeometry(activeCourseId, holeId, featureId, [coords]);
+    },
+    [activeCourseId, course, updateFeatureGeometry, saveSnapshot]
+  );
+
+  // Handler for dragging line vertices (OB lines)
+  const handleLineVertexDrag = useCallback(
+    (featureId: string, holeId: string, vertexIndex: number, event: MarkerDragEvent) => {
+      if (!activeCourseId || !course) return;
+
+      const hole = course.holes.find((h) => h.id === holeId);
+      const feature = hole?.features.find((f) => f.properties.id === featureId);
+      if (!feature || feature.geometry.type !== 'LineString') return;
+
+      const coords = [...(feature.geometry as { coordinates: number[][] }).coordinates] as [number, number][];
+      coords[vertexIndex] = [event.lngLat.lng, event.lngLat.lat];
+
+      saveSnapshot(activeCourseId);
+      updateFeatureGeometry(activeCourseId, holeId, featureId, coords);
+    },
+    [activeCourseId, course, updateFeatureGeometry, saveSnapshot]
+  );
+
+  // Handler for adding a new node to line
+  const handleAddLineNode = useCallback(
+    (featureId: string, holeId: string, afterIndex: number) => {
+      if (!activeCourseId || !course) return;
+
+      const hole = course.holes.find((h) => h.id === holeId);
+      const feature = hole?.features.find((f) => f.properties.id === featureId);
+      if (!feature || feature.geometry.type !== 'LineString') return;
+
+      const coords = [...(feature.geometry as { coordinates: number[][] }).coordinates] as [number, number][];
+
+      // Calculate midpoint
+      const p1 = coords[afterIndex];
+      const p2 = coords[afterIndex + 1];
+      const midpoint: [number, number] = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+
+      coords.splice(afterIndex + 1, 0, midpoint);
+
+      saveSnapshot(activeCourseId);
+      updateFeatureGeometry(activeCourseId, holeId, featureId, coords);
+    },
+    [activeCourseId, course, updateFeatureGeometry, saveSnapshot]
+  );
+
+  // Handler for removing a node from line
+  const handleRemoveLineNode = useCallback(
+    (featureId: string, holeId: string, nodeIndex: number) => {
+      if (!activeCourseId || !course) return;
+
+      const hole = course.holes.find((h) => h.id === holeId);
+      const feature = hole?.features.find((f) => f.properties.id === featureId);
+      if (!feature || feature.geometry.type !== 'LineString') return;
+
+      const coords = [...(feature.geometry as { coordinates: number[][] }).coordinates] as [number, number][];
+
+      // Don't allow removing if only 2 nodes left
+      if (coords.length <= 2) return;
+
+      coords.splice(nodeIndex, 1);
+
+      saveSnapshot(activeCourseId);
+      updateFeatureGeometry(activeCourseId, holeId, featureId, coords);
+    },
+    [activeCourseId, course, updateFeatureGeometry, saveSnapshot]
+  );
+
   // Handler for clicking on tee/dropzone to start flight line
   const handleFlightLineStart = useCallback(
     (featureId: string, startType: 'tee' | 'dropzone', coords: [number, number], color: string) => {
@@ -792,6 +936,134 @@ export function FeatureLayers() {
           </Marker>
         );
       })}
+
+      {/* Vertex editing for selected polygons */}
+      {selectedFeatureId && (() => {
+        const selectedFeature = features.find((f) => f.properties.id === selectedFeatureId);
+        if (!selectedFeature) return null;
+
+        const featureType = selectedFeature.properties.type;
+        const isEditablePolygon = ['obZone', 'fairway', 'infrastructure', 'dropzoneArea'].includes(featureType);
+        const isEditableLine = featureType === 'obLine';
+
+        if (isEditablePolygon && selectedFeature.geometry.type === 'Polygon') {
+          const coords = (selectedFeature.geometry as { coordinates: number[][][] }).coordinates[0] as [number, number][];
+          // Don't render the last point (it's the same as first for closed polygons)
+          const vertices = coords.slice(0, -1);
+          const featureColor = featureType === 'obZone' ? '#dc2626' :
+                              featureType === 'fairway' ? '#22c55e' :
+                              featureType === 'infrastructure' ? '#10b981' :
+                              '#3b82f6';
+
+          return (
+            <>
+              {/* Vertex handles */}
+              {vertices.map((coord, idx) => (
+                <Marker
+                  key={`vertex-${selectedFeatureId}-${idx}`}
+                  longitude={coord[0]}
+                  latitude={coord[1]}
+                  anchor="center"
+                  draggable
+                  onDragEnd={(e) => handlePolygonVertexDrag(selectedFeatureId, selectedFeature.properties.holeId, idx, e)}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full border-2 cursor-move shadow-md hover:scale-125 transition-transform"
+                    style={{ backgroundColor: 'white', borderColor: featureColor }}
+                    title={`Vertex ${idx + 1} (double-click to remove)`}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleRemovePolygonNode(selectedFeatureId, selectedFeature.properties.holeId, idx);
+                    }}
+                  />
+                </Marker>
+              ))}
+
+              {/* Add node buttons between vertices */}
+              {vertices.map((coord, idx) => {
+                const nextIdx = (idx + 1) % vertices.length;
+                const nextCoord = vertices[nextIdx];
+                const midpoint: [number, number] = [(coord[0] + nextCoord[0]) / 2, (coord[1] + nextCoord[1]) / 2];
+                return (
+                  <Marker
+                    key={`add-node-${selectedFeatureId}-${idx}`}
+                    longitude={midpoint[0]}
+                    latitude={midpoint[1]}
+                    anchor="center"
+                  >
+                    <button
+                      className="w-5 h-5 rounded-full border-2 bg-white hover:bg-gray-100 flex items-center justify-center shadow-md hover:scale-125 transition-transform opacity-60 hover:opacity-100"
+                      style={{ borderColor: featureColor, color: featureColor }}
+                      onClick={() => handleAddPolygonNode(selectedFeatureId, selectedFeature.properties.holeId, idx)}
+                      title="Add vertex"
+                    >
+                      <span className="text-xs font-bold leading-none">+</span>
+                    </button>
+                  </Marker>
+                );
+              })}
+            </>
+          );
+        }
+
+        if (isEditableLine && selectedFeature.geometry.type === 'LineString') {
+          const coords = (selectedFeature.geometry as { coordinates: number[][] }).coordinates as [number, number][];
+          const featureColor = '#dc2626'; // OB line color
+
+          return (
+            <>
+              {/* Vertex handles */}
+              {coords.map((coord, idx) => (
+                <Marker
+                  key={`vertex-${selectedFeatureId}-${idx}`}
+                  longitude={coord[0]}
+                  latitude={coord[1]}
+                  anchor="center"
+                  draggable
+                  onDragEnd={(e) => handleLineVertexDrag(selectedFeatureId, selectedFeature.properties.holeId, idx, e)}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full border-2 cursor-move shadow-md hover:scale-125 transition-transform"
+                    style={{ backgroundColor: 'white', borderColor: featureColor }}
+                    title={`Vertex ${idx + 1}${coords.length > 2 ? ' (double-click to remove)' : ''}`}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      if (coords.length > 2) {
+                        handleRemoveLineNode(selectedFeatureId, selectedFeature.properties.holeId, idx);
+                      }
+                    }}
+                  />
+                </Marker>
+              ))}
+
+              {/* Add node buttons between vertices */}
+              {coords.slice(0, -1).map((coord, idx) => {
+                const nextCoord = coords[idx + 1];
+                const midpoint: [number, number] = [(coord[0] + nextCoord[0]) / 2, (coord[1] + nextCoord[1]) / 2];
+                return (
+                  <Marker
+                    key={`add-node-${selectedFeatureId}-${idx}`}
+                    longitude={midpoint[0]}
+                    latitude={midpoint[1]}
+                    anchor="center"
+                  >
+                    <button
+                      className="w-5 h-5 rounded-full border-2 bg-white hover:bg-gray-100 flex items-center justify-center shadow-md hover:scale-125 transition-transform opacity-60 hover:opacity-100"
+                      style={{ borderColor: featureColor, color: featureColor }}
+                      onClick={() => handleAddLineNode(selectedFeatureId, selectedFeature.properties.holeId, idx)}
+                      title="Add vertex"
+                    >
+                      <span className="text-xs font-bold leading-none">+</span>
+                    </button>
+                  </Marker>
+                );
+              })}
+            </>
+          );
+        }
+
+        return null;
+      })()}
     </>
   );
 }

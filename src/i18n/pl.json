@@ -35,7 +35,10 @@
     "notes": "Notatki",
     "rules": "Zasady",
     "addHole": "Dodaj Dołek",
-    "deleteHole": "Usuń Dołek"
+    "deleteHole": "Usuń Dołek",
+    "namePlaceholder": "Nazwa dołka (opcjonalnie)",
+    "notesPlaceholder": "Dodaj notatki, zasady lokalne...",
+    "teeNumber": "Tee {{number}}"
   },
   "features": {
     "tee": "Tee Pad",
@@ -48,7 +51,8 @@
     "mandatory": "Mando",
     "annotation": "Adnotacja",
     "infrastructure": "Teren",
-    "landmark": "Punkt Orientacyjny"
+    "landmark": "Punkt Orientacyjny",
+    "obLine": "Linia OB"
   },
   "teePosition": {
     "pro": "Pro",
@@ -93,8 +97,8 @@
     "drawOB": "Strefa OB",
     "drawFairway": "Fairway",
     "placeDropzone": "Dropzone",
-    "drawDropzoneArea": "OB Obszar",
-    "drawOBLine": "OB Linia",
+    "drawDropzoneArea": "Obszar OB",
+    "drawOBLine": "Linia OB",
     "placeMandatory": "Mando",
     "placeAnnotation": "Adnotacja",
     "drawTerrain": "Teren",
@@ -129,7 +133,8 @@
     "clickToSelect": "Kliknij na element, aby edytować jego właściwości",
     "teeName": "Nazwa Tee",
     "teeNamePlaceholder": "np. Czerwone, Białe, Niebieskie...",
-    "addNotes": "Dodaj notatki..."
+    "addNotes": "Dodaj notatki...",
+    "noCourse": "Nie wybrano pola"
   },
   "style": {
     "basketTop": "Górna Obręcz",
@@ -142,7 +147,10 @@
     "lineColor": "Kolor Linii",
     "lineWidth": "Grubość Linii",
     "otherMarkers": "Inne Markery",
-    "teeColor": "Kolor Tee"
+    "teeColor": "Kolor Tee",
+    "teeColorHint": "Pojedyncze tee mogą mieć własne kolory ustawione we właściwościach.",
+    "flightLineColorHint": "Linie rzutu dziedziczą kolor od startowego tee/dropzone.",
+    "opacity": "Przezroczystość"
   },
   "layers": {
     "showAll": "Pokaż Wszystkie",
@@ -231,7 +239,8 @@
     "edit": "Edytuj",
     "duplicate": "Duplikuj",
     "confirm": "Potwierdź",
-    "close": "Zamknij"
+    "close": "Zamknij",
+    "reset": "Przywróć domyślne"
   },
   "messages": {
     "courseSaved": "Pole zapisane pomyślnie",
@@ -246,15 +255,55 @@
     "m": "m",
     "ft": "ft"
   },
+  "obZone": {
+    "penalty": "Kara",
+    "stroke": "+1 Rzut",
+    "rethrow": "Powtórny rzut",
+    "drop": "Drop Zone"
+  },
+  "obLine": {
+    "fairwaySide": "Strona Fairway",
+    "left": "← Lewa",
+    "right": "Prawa →",
+    "hint": "Zielony = Fairway, Czerwony = OB"
+  },
+  "dropzoneArea": {
+    "fairwayPosition": "Pozycja Fairway",
+    "inside": "Wewnątrz",
+    "outside": "Na zewnątrz",
+    "hint": "Zielony = Fairway, Czerwony = OB"
+  },
   "terrain": {
     "theme": "Motyw Mapy",
-    "types": "Dostępne Tereny",
+    "types": "Typ Terenu",
+    "selectTerrain": "Wybierz Teren",
+    "changeTerrain": "Zmień Typ Terenu",
     "hint": "Rysuj strefy terenu używając narzędzia wielokąta po wybraniu typu terenu z paska narzędzi.",
     "exportHint": "Motyw zostanie zastosowany przy eksporcie map SVG.",
-    "ground": "Podłoże",
-    "vegetation": "Roślinność",
-    "water": "Woda",
-    "surface": "Nawierzchnia",
+    "defaultTerrain": "Domyślne Tło",
+    "defaultTerrainHint": "Ten teren wypełni całe tło mapy przy eksporcie.",
+    "availableTerrains": "Dostępne Tereny",
+    "drawHint": "Wybierz teren z paska narzędzi, następnie rysuj wielokąty na mapie. Pojawią się nad domyślnym tłem.",
+    "layeringTitle": "Jak działa warstwowanie terenu:",
+    "layer1": "Domyślny teren wypełnia całe tło",
+    "layer2": "Narysowane wielokąty terenu pojawiają się na wierzchu",
+    "layer3": "Elementy gry (tee, kosze itp.) są na samej górze",
+    "cornerRadius": "Zaokrąglenie Rogów",
+    "sharp": "Ostre",
+    "rounded": "Zaokrąglone",
+    "nodeCount": "{{count}} wierzchołków",
+    "vertices": "wierzchołków",
+    "editHint": "Przeciągnij wierzchołki, aby zmienić kształt. Podwójne kliknięcie usuwa wierzchołek.",
+    "cornerRadiusHint": "Widoczne tylko w eksporcie SVG, nie na podglądzie mapy",
+    "customColors": "Własne Kolory",
+    "fill": "Wypełnienie:",
+    "border": "Obramowanie:",
+    "categories": {
+      "ground": "Podłoże",
+      "vegetation": "Roślinność",
+      "water": "Woda",
+      "surface": "Nawierzchnia"
+    },
     "grass": "Trawa",
     "roughGrass": "Wysoka Trawa",
     "forest": "Las / Drzewa",
@@ -278,6 +327,42 @@
     "size": "Rozmiar",
     "rotation": "Obrót",
     "customColor": "Własny Kolor",
-    "scrollToRotate": "Użyj kółka myszy, aby obrócić gdy zaznaczony"
+    "scrollToRotate": "Użyj kółka myszy, aby obrócić gdy zaznaczony",
+    "categories": {
+      "amenities": "Udogodnienia",
+      "nature": "Przyroda",
+      "signage": "Oznakowanie",
+      "hazards": "Przeszkody",
+      "structures": "Budowle"
+    },
+    "types": {
+      "parking": "Parking",
+      "restroom": "Toaleta",
+      "bench": "Ławka",
+      "picnicTable": "Stół Piknikowy",
+      "trashCan": "Kosz na Śmieci",
+      "waterFountain": "Fontanna z Wodą",
+      "tree": "Drzewo",
+      "treeGroup": "Grupa Drzew",
+      "bush": "Krzak",
+      "flower": "Kwiaty",
+      "rock": "Skała",
+      "stump": "Pniak",
+      "infoSign": "Tablica Informacyjna",
+      "holeSign": "Tablica Dołka",
+      "directionSign": "Drogowskaz",
+      "warningSign": "Znak Ostrzegawczy",
+      "fence": "Słupek Ogrodzenia",
+      "post": "Słupek",
+      "electricBox": "Skrzynka Elektryczna",
+      "shelter": "Wiata",
+      "bridge": "Most",
+      "stairs": "Schody",
+      "path": "Znacznik Ścieżki"
+    }
+  },
+  "languages": {
+    "en": "English",
+    "pl": "Polski"
   }
 }

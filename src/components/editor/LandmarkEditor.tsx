@@ -3,6 +3,7 @@ import { MapPin, Trees, Building2, AlertTriangle, Signpost } from 'lucide-react'
 import { useEditorStore } from '../../stores';
 import { LANDMARK_DEFINITIONS, LANDMARK_CATEGORIES, getLandmarksByCategory } from '../../types/landmarks';
 import type { LandmarkType, LandmarkCategory } from '../../types/landmarks';
+import { getLandmarkName, getLandmarkCategoryName } from '../../utils/i18nHelpers';
 
 const categoryIcons: Record<LandmarkCategory, React.ReactNode> = {
   amenities: <Building2 size={14} />,
@@ -47,7 +48,7 @@ export function LandmarkEditor() {
               <span className="text-lg">{LANDMARK_DEFINITIONS[activeLandmarkType].icon}</span>
               <div>
                 <div className="text-sm font-medium text-amber-800">
-                  {LANDMARK_DEFINITIONS[activeLandmarkType].name}
+                  {getLandmarkName(t, activeLandmarkType)}
                 </div>
                 <div className="text-xs text-amber-600">
                   {t('landmarks.clickToPlace', 'Click on map to place')}
@@ -63,7 +64,7 @@ export function LandmarkEditor() {
         <section key={category.id}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-gray-500">{categoryIcons[category.id]}</span>
-            <span className="text-xs font-medium text-gray-600">{category.name}</span>
+            <span className="text-xs font-medium text-gray-600">{getLandmarkCategoryName(t, category.id)}</span>
           </div>
 
           <div className="grid grid-cols-3 gap-1.5">
@@ -82,11 +83,11 @@ export function LandmarkEditor() {
                       : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                     }
                   `}
-                  title={def.name}
+                  title={getLandmarkName(t, type)}
                 >
                   <span className="text-xl">{def.icon}</span>
                   <span className="text-[10px] text-gray-600 leading-tight truncate w-full">
-                    {def.name}
+                    {getLandmarkName(t, type)}
                   </span>
                 </button>
               );

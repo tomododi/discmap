@@ -8,9 +8,25 @@ const resources = {
   pl: { translation: pl },
 };
 
+// Try to get the persisted language from localStorage
+function getInitialLanguage(): string {
+  try {
+    const stored = localStorage.getItem('discmap-settings');
+    if (stored) {
+      const settings = JSON.parse(stored);
+      if (settings.state?.language) {
+        return settings.state.language;
+      }
+    }
+  } catch {
+    // Ignore errors, use default
+  }
+  return 'pl'; // Default to Polish
+}
+
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'en',
+  lng: getInitialLanguage(),
   fallbackLng: 'en',
   interpolation: {
     escapeValue: false,
