@@ -7,29 +7,22 @@ import type { Hole, TeeFeature, BasketFeature } from '../../types/course';
 function HoleCard({ hole, isActive }: { hole: Hole; isActive: boolean }) {
   const { t } = useTranslation();
   const units = useSettingsStore((s) => s.units);
-  const activeTeePosition = useEditorStore((s) => s.activeTeePosition);
   const setActiveHole = useEditorStore((s) => s.setActiveHole);
   const flyTo = useMapStore((s) => s.flyTo);
 
-  // Find tee and basket for distance calculation
-  const tee = hole.features.find(
-    (f) => f.properties.type === 'tee' && (f.properties as TeeFeature['properties']).position === activeTeePosition
-  ) as TeeFeature | undefined;
+  // Find first tee and basket for distance calculation
+  const tees = hole.features.filter((f) => f.properties.type === 'tee') as TeeFeature[];
+  const firstTee = tees[0];
+  const basket = hole.features.find((f) => f.properties.type === 'basket') as BasketFeature | undefined;
 
-  const basket = hole.features.find(
-    (f) => f.properties.type === 'basket'
-  ) as BasketFeature | undefined;
-
-  // Calculate distance
+  // Calculate distance from first tee to basket
   let distance: number | null = null;
-  if (tee && basket) {
+  if (firstTee && basket) {
     distance = calculateDistance(
-      tee.geometry.coordinates as [number, number],
+      firstTee.geometry.coordinates as [number, number],
       basket.geometry.coordinates as [number, number],
       units
     );
-  } else if (hole.distances[activeTeePosition]) {
-    distance = hole.distances[activeTeePosition]!;
   }
 
   const handleClick = () => {
@@ -69,6 +62,9 @@ function HoleCard({ hole, isActive }: { hole: Hole; isActive: boolean }) {
               Par {hole.par}
               {distance !== null && (
                 <span className="ml-2">{formatDistance(distance, units)}</span>
+              )}
+              {tees.length > 1 && (
+                <span className="ml-2 text-xs text-gray-400">({tees.length} tees)</span>
               )}
             </div>
           </div>

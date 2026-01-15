@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { MapRef } from 'react-map-gl/maplibre';
 import type { IControl } from 'maplibre-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useCourseStore, useEditorStore, useMapStore } from '../../stores';
-import type { DiscGolfFeature, TeeProperties, BasketProperties, DropzoneProperties, MandatoryProperties, FlightLineProperties, OBZoneProperties, FairwayProperties } from '../../types/course';
+import type { DiscGolfFeature, TeeProperties, BasketProperties, DropzoneProperties, DropzoneAreaProperties, MandatoryProperties, FlightLineProperties, OBZoneProperties, OBLineProperties, FairwayProperties, AnnotationProperties, InfrastructureProperties, LandmarkProperties } from '../../types/course';
+import { DEFAULT_TEE_COLORS } from '../../types/course';
 import type { DrawMode } from '../../types/editor';
+import { TERRAIN_PATTERNS } from '../../types/terrain';
+import { LANDMARK_DEFINITIONS } from '../../types/landmarks';
 
 interface DrawControlsProps {
   mapRef: React.RefObject<MapRef | null>;
@@ -16,11 +19,13 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
   const drawMode = useEditorStore((s) => s.drawMode);
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const activeHoleId = useEditorStore((s) => s.activeHoleId);
-  const activeTeePosition = useEditorStore((s) => s.activeTeePosition);
+  const activeTerrainType = useEditorStore((s) => s.activeTerrainType);
+  const activeLandmarkType = useEditorStore((s) => s.activeLandmarkType);
   const setDrawMode = useEditorStore((s) => s.setDrawMode);
   const setSelectedFeature = useEditorStore((s) => s.setSelectedFeature);
   const addFeature = useCourseStore((s) => s.addFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
+  const courses = useCourseStore((s) => s.courses);
 
   // Initialize draw control
   useEffect(() => {
@@ -102,65 +107,124 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     };
   }, [isMapLoaded, mapRef]);
 
+  // Get existing tee count for the current hole
+  const getExistingTeeCount = (): number => {
+    if (!activeCourseId || !activeHoleId) return 0;
+    const course = courses[activeCourseId];
+    const hole = course?.holes.find((h) => h.id === activeHoleId);
+    if (!hole) return 0;
+    return hole.features.filter((f) => f.properties.type === 'tee').length;
+  };
+
+  // Get default flight line color from course style
+  const getDefaultFlightLineColor = (): string => {
+    if (!activeCourseId) return '#3b82f6';
+    const course = courses[activeCourseId];
+    return course?.style?.defaultFlightLineColor || '#3b82f6';
+  };
+
   // Create feature from draw mode
-  const createFeatureProperties = useCallback(
-    (drawMode: DrawMode): Partial<DiscGolfFeature['properties']> | null => {
-      if (!activeHoleId) return null;
+  const createFeatureProperties = (drawMode: DrawMode): Partial<DiscGolfFeature['properties']> | null => {
+    if (!activeHoleId) return null;
 
-      const now = new Date().toISOString();
-      const baseProps = {
-        id: crypto.randomUUID(),
-        holeId: activeHoleId,
-        createdAt: now,
-        updatedAt: now,
-      };
+    const now = new Date().toISOString();
+    const baseProps = {
+      id: crypto.randomUUID(),
+      holeId: activeHoleId,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      switch (drawMode) {
-        case 'tee':
-          return {
-            ...baseProps,
-            type: 'tee',
-            position: activeTeePosition,
-          } as TeeProperties;
-        case 'basket':
-          return {
-            ...baseProps,
-            type: 'basket',
-          } as BasketProperties;
-        case 'dropzone':
-          return {
-            ...baseProps,
-            type: 'dropzone',
-          } as DropzoneProperties;
-        case 'mandatory':
-          return {
-            ...baseProps,
-            type: 'mandatory',
-            direction: 'right',
-          } as MandatoryProperties;
-        case 'flightLine':
-          return {
-            ...baseProps,
-            type: 'flightLine',
-            position: activeTeePosition,
-          } as FlightLineProperties;
-        case 'obZone':
-          return {
-            ...baseProps,
-            type: 'obZone',
-            penalty: 'stroke',
-          } as OBZoneProperties;
-        case 'fairway':
-          return {
-            ...baseProps,
-            type: 'fairway',
-          } as FairwayProperties;
-        default:
-          return null;
+    switch (drawMode) {
+      case 'tee': {
+        const existingTeeCount = getExistingTeeCount();
+        const color = DEFAULT_TEE_COLORS[existingTeeCount % DEFAULT_TEE_COLORS.length];
+        return {
+          ...baseProps,
+          type: 'tee',
+          color,
+        } as TeeProperties;
       }
-    },
-    [activeHoleId, activeTeePosition]
-  );
+      case 'basket':
+        return {
+          ...baseProps,
+          type: 'basket',
+        } as BasketProperties;
+      case 'dropzone':
+        return {
+          ...baseProps,
+          type: 'dropzone',
+        } as DropzoneProperties;
+      case 'mandatory':
+        return {
+          ...baseProps,
+          type: 'mandatory',
+          rotation: 0, // Default pointing right
+          lineAngle: 90, // Default perpendicular to arrow
+          lineLength: 50, // Default 50 meters
+        } as MandatoryProperties;
+      case 'flightLine': {
+        const flightLineColor = getDefaultFlightLineColor();
+        return {
+          ...baseProps,
+          type: 'flightLine',
+          startFrom: 'tee',
+          color: flightLineColor,
+        } as FlightLineProperties;
+      }
+      case 'obZone':
+        return {
+          ...baseProps,
+          type: 'obZone',
+          penalty: 'stroke',
+        } as OBZoneProperties;
+      case 'obLine':
+        return {
+          ...baseProps,
+          type: 'obLine',
+          fairwaySide: 'left',
+        } as OBLineProperties;
+      case 'fairway':
+        return {
+          ...baseProps,
+          type: 'fairway',
+        } as FairwayProperties;
+      case 'dropzoneArea':
+        return {
+          ...baseProps,
+          type: 'dropzoneArea',
+          fairwayInside: true,
+        } as DropzoneAreaProperties;
+      case 'annotation':
+        return {
+          ...baseProps,
+          type: 'annotation',
+          text: 'New annotation',
+        } as AnnotationProperties;
+      case 'infrastructure': {
+        const terrainPattern = TERRAIN_PATTERNS[activeTerrainType];
+        return {
+          ...baseProps,
+          type: 'infrastructure',
+          terrainType: activeTerrainType,
+          label: terrainPattern.name,
+        } as InfrastructureProperties;
+      }
+      case 'landmark': {
+        const landmarkDef = LANDMARK_DEFINITIONS[activeLandmarkType];
+        return {
+          ...baseProps,
+          type: 'landmark',
+          landmarkType: activeLandmarkType,
+          label: landmarkDef.name,
+          size: 1,
+          rotation: 0,
+        } as LandmarkProperties;
+      }
+      default:
+        return null;
+    }
+  };
 
   // Handle draw mode changes
   useEffect(() => {
@@ -176,13 +240,22 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
       case 'basket':
       case 'dropzone':
       case 'mandatory':
+      case 'annotation':
+      case 'landmark':
         draw.changeMode('draw_point');
         break;
       case 'flightLine':
+        // Flight lines use custom click-based creation (tee/dropzone → basket)
+        // Don't use mapbox-gl-draw for these
+        draw.changeMode('simple_select');
+        break;
+      case 'obLine':
         draw.changeMode('draw_line_string');
         break;
       case 'obZone':
       case 'fairway':
+      case 'dropzoneArea':
+      case 'infrastructure':
         draw.changeMode('draw_polygon');
         break;
     }
@@ -246,6 +319,8 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     drawMode,
     activeCourseId,
     activeHoleId,
+    activeTerrainType,
+    activeLandmarkType,
     createFeatureProperties,
     addFeature,
     saveSnapshot,

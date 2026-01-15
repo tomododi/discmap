@@ -43,26 +43,80 @@
     "flightLine": "Linia Rzutu",
     "obZone": "Strefa OB",
     "fairway": "Fairway",
-    "dropzone": "Strefa Drop",
-    "mandatory": "Mando"
+    "dropzone": "Dropzone",
+    "dropzoneArea": "OB",
+    "mandatory": "Mando",
+    "annotation": "Adnotacja",
+    "infrastructure": "Teren",
+    "landmark": "Punkt Orientacyjny"
   },
   "teePosition": {
     "pro": "Pro",
     "amateur": "Amator",
     "recreational": "Rekreacyjny"
   },
+  "tee": {
+    "rotation": "Kierunek Tee",
+    "scrollToRotate": "Przewiń na markerze, aby obrócić"
+  },
+  "dropzone": {
+    "rotation": "Kierunek Znacznika",
+    "scrollToRotate": "Przewiń na markerze, aby obrócić"
+  },
+  "mandatory": {
+    "rotation": "Kierunek Strzałki",
+    "lineAngle": "Kąt Linii Granicznej",
+    "lineLength": "Długość Linii Granicznej",
+    "scrollToRotate": "Przewiń na markerze, aby obrócić"
+  },
+  "flightLine": {
+    "nodeCount": "{{count}} węzłów",
+    "editHint": "Przeciągnij węzły, aby dostosować. Kliknij +, aby dodać węzły."
+  },
+  "annotation": {
+    "text": "Tekst",
+    "textPlaceholder": "Wprowadź tekst adnotacji...",
+    "fontSize": "Rozmiar Czcionki",
+    "fontFamily": "Rodzina Czcionki",
+    "fontWeight": "Grubość Czcionki",
+    "normal": "Normalna",
+    "bold": "Pogrubiona",
+    "textColor": "Kolor Tekstu",
+    "backgroundColor": "Kolor Tła",
+    "borderColor": "Kolor Obramowania"
+  },
   "toolbar": {
     "select": "Zaznacz",
-    "placeTee": "Postaw Tee",
-    "placeBasket": "Postaw Kosz",
-    "drawFlightLine": "Rysuj Linię Rzutu",
-    "drawOB": "Rysuj Strefę OB",
-    "drawFairway": "Rysuj Fairway",
-    "placeDropzone": "Postaw Dropzone",
-    "placeMandatory": "Postaw Mando",
+    "placeTee": "Tee",
+    "placeBasket": "Kosz",
+    "drawFlightLine": "Flightline",
+    "drawOB": "Strefa OB",
+    "drawFairway": "Fairway",
+    "placeDropzone": "Dropzone",
+    "drawDropzoneArea": "OB Obszar",
+    "drawOBLine": "OB Linia",
+    "placeMandatory": "Mando",
+    "placeAnnotation": "Adnotacja",
+    "drawTerrain": "Teren",
     "undo": "Cofnij",
     "redo": "Ponów",
     "export": "Eksportuj"
+  },
+  "toolbarDesc": {
+    "select": "Kliknij, aby zaznaczyć i edytować elementy. Przeciągnij, aby je przenieść.",
+    "tee": "Kliknij na mapie, aby postawić tee pad. Każde tee może mieć własny kolor.",
+    "basket": "Kliknij na mapie, aby postawić kosz (cel).",
+    "flightLine": "Kliknij na tee lub dropzone, potem na kosz - narysuje prostą linię. Potem możesz dodawać węzły.",
+    "flightLineStep1": "Krok 1: Kliknij na tee lub dropzone, aby zacząć linię",
+    "flightLineStep2": "Krok 2: Kliknij na kosz, aby zakończyć linię",
+    "obZone": "Kliknij, aby narysować strefę OB. Podwójne kliknięcie kończy rysowanie.",
+    "fairway": "Kliknij, aby narysować fairway. Podwójne kliknięcie kończy rysowanie.",
+    "dropzone": "Kliknij na mapie, aby postawić marker dropzone.",
+    "dropzoneArea": "Narysuj obszar fairway - poza nim będzie OB. Podwójne kliknięcie kończy.",
+    "obLine": "Narysuj linię OB. Zielona strona to fairway, czerwona to OB. Podwójne kliknięcie kończy.",
+    "mandatory": "Kliknij, aby postawić mando. Przewiń na nim, aby obrócić kierunek strzałki.",
+    "annotation": "Kliknij, aby dodać adnotację tekstową. Edytuj tekst i styl w panelu właściwości.",
+    "infrastructure": "Rysuj strefy terenu (las, woda, ścieżki itp.). Wybierz typ z listy, narysuj wielokąt. Podwójne kliknięcie kończy."
   },
   "editor": {
     "courseInfo": "Info o Polu",
@@ -70,19 +124,41 @@
     "style": "Styl",
     "layers": "Warstwy",
     "properties": "Właściwości",
+    "landmarks": "Punkty",
     "noFeatureSelected": "Nie wybrano elementu",
-    "clickToSelect": "Kliknij na element, aby edytować jego właściwości"
+    "clickToSelect": "Kliknij na element, aby edytować jego właściwości",
+    "teeName": "Nazwa Tee",
+    "teeNamePlaceholder": "np. Czerwone, Białe, Niebieskie...",
+    "addNotes": "Dodaj notatki..."
+  },
+  "style": {
+    "basketTop": "Górna Obręcz",
+    "basketBody": "Korpus Kosza",
+    "basketChains": "Łańcuchy",
+    "basketPole": "Słupek",
+    "zones": "Strefy",
+    "obOpacity": "Przezroczystość OB",
+    "fairwayOpacity": "Przezroczystość Fairway",
+    "lineColor": "Kolor Linii",
+    "lineWidth": "Grubość Linii",
+    "otherMarkers": "Inne Markery",
+    "teeColor": "Kolor Tee"
   },
   "layers": {
     "showAll": "Pokaż Wszystkie",
     "hideAll": "Ukryj Wszystkie",
+    "infrastructure": "Teren / Infrastruktura",
     "tees": "Tee Pady",
     "baskets": "Kosze",
     "flightLines": "Linie Rzutów",
     "obZones": "Strefy OB",
+    "obLines": "Linie OB",
     "fairways": "Fairwaye",
-    "dropzones": "Strefy Drop",
-    "mandatories": "Manda"
+    "dropzones": "Dropzony",
+    "dropzoneAreas": "Obszary OB",
+    "mandatories": "Manda",
+    "landmarks": "Punkty Orientacyjne",
+    "annotations": "Adnotacje"
   },
   "export": {
     "title": "Eksportuj Mapę",
@@ -92,13 +168,22 @@
     "includeBackground": "Dołącz tło satelitarne",
     "includeLegend": "Dołącz legendę",
     "includeTitle": "Dołącz tytuł",
-    "includeDistances": "Dołącz odległości",
+    "includeDistances": "Dołącz numery dołków",
     "holes": "Dołki do eksportu",
     "allHoles": "Wszystkie dołki",
     "currentHole": "Aktualny dołek",
     "selectedHoles": "Wybrane dołki",
     "download": "Pobierz",
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "fullCourse": "Pełna Mapa Pola",
+    "individualHoles": "Pojedyncze Dołki",
+    "exportType": "Typ Eksportu",
+    "terrain": "Teren i Stylizacja",
+    "mapTheme": "Motyw Mapy",
+    "includeTerrain": "Stylowe tło i teren",
+    "includeInfrastructure": "Strefy infrastruktury",
+    "includeCompass": "Róża kompasowa",
+    "includeScaleBar": "Skala"
   },
   "settings": {
     "title": "Ustawienia",
@@ -141,5 +226,39 @@
   "units": {
     "m": "m",
     "ft": "ft"
+  },
+  "terrain": {
+    "theme": "Motyw Mapy",
+    "types": "Dostępne Tereny",
+    "hint": "Rysuj strefy terenu używając narzędzia wielokąta po wybraniu typu terenu z paska narzędzi.",
+    "exportHint": "Motyw zostanie zastosowany przy eksporcie map SVG.",
+    "ground": "Podłoże",
+    "vegetation": "Roślinność",
+    "water": "Woda",
+    "surface": "Nawierzchnia",
+    "grass": "Trawa",
+    "roughGrass": "Wysoka Trawa",
+    "forest": "Las / Drzewa",
+    "waterPond": "Woda / Staw",
+    "sand": "Piasek / Bunker",
+    "path": "Ścieżka",
+    "concrete": "Beton / Asfalt",
+    "gravel": "Żwir",
+    "marsh": "Bagno / Mokradła",
+    "rocks": "Skały"
+  },
+  "landmarks": {
+    "title": "Punkty Orientacyjne",
+    "hint": "Wybierz element i kliknij na mapie, aby go umieścić.",
+    "clickToPlace": "Kliknij na mapie, aby umieścić",
+    "tipsTitle": "Wskazówki:",
+    "tip1": "Punkty orientacyjne to elementy dekoracyjne",
+    "tip2": "Przeciągnij, aby zmienić pozycję po umieszczeniu",
+    "tip3": "Użyj kółka myszy, aby obrócić (gdy zaznaczony)",
+    "changeType": "Zmień Typ Punktu",
+    "size": "Rozmiar",
+    "rotation": "Obrót",
+    "customColor": "Własny Kolor",
+    "scrollToRotate": "Użyj kółka myszy, aby obrócić gdy zaznaczony"
   }
 }

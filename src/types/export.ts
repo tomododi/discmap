@@ -5,29 +5,31 @@ export interface ExportConfig {
   width: number;
   height: number;
   dpi?: number;
-  includeBackground: boolean;
-  backgroundOpacity: number;
   includeLegend: boolean;
   includeTitle: boolean;
   includeHoleNumbers: boolean;
   includeDistances: boolean;
   holes: 'all' | 'current' | number[];
-  printColors?: boolean;
-  strokeScaleFactor?: number;
+  // Terrain export options
+  includeTerrain: boolean;
+  includeCompass: boolean;
+  includeScaleBar: boolean;
+  includeInfrastructure: boolean;
 }
 
 export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   format: 'svg',
   width: 1920,
   height: 1080,
-  dpi: 300,
-  includeBackground: true,
-  backgroundOpacity: 0.8,
+  dpi: 96,
   includeLegend: true,
   includeTitle: true,
   includeHoleNumbers: true,
   includeDistances: true,
   holes: 'all',
-  printColors: false,
-  strokeScaleFactor: 1,
+  // Terrain defaults
+  includeTerrain: true,
+  includeCompass: true,
+  includeScaleBar: true,
+  includeInfrastructure: true,
 };

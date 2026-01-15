@@ -47,3 +47,31 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-gray-300 rounded hover:bg-gray-400;
 }
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom horizontal scrollbar */
+.custom-scrollbar-x {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar {
+  height: 4px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded hover:bg-gray-400;
+}

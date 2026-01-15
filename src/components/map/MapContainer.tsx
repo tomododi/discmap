@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import Map, { NavigationControl, GeolocateControl } from 'react-map-gl/maplibre';
-import type { MapRef, ViewStateChangeEvent } from 'react-map-gl/maplibre';
+import type { MapRef, ViewStateChangeEvent, MapLayerMouseEvent } from 'react-map-gl/maplibre';
 import { useMapStore, useSettingsStore, useCourseStore, useEditorStore } from '../../stores';
 import { createMapStyle } from '../../lib/mapbox';
 import { DrawControls } from './DrawControls';
@@ -13,6 +13,7 @@ export function MapContainer() {
   const setIsMapLoaded = useMapStore((s) => s.setIsMapLoaded);
   const defaultMapStyle = useSettingsStore((s) => s.defaultMapStyle);
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
+  const setSelectedFeature = useEditorStore((s) => s.setSelectedFeature);
   const course = useCourseStore((s) => activeCourseId ? s.courses[activeCourseId] : null);
 
   const handleMove = useCallback(
@@ -26,8 +27,26 @@ export function MapContainer() {
     setIsMapLoaded(true);
   }, [setIsMapLoaded]);
 
+  // Handle clicks on interactive layers (flight lines, OB zones, fairways)
+  const handleClick = useCallback(
+    (evt: MapLayerMouseEvent) => {
+      const features = evt.features;
+      if (features && features.length > 0) {
+        const clickedFeature = features[0];
+        const featureId = clickedFeature.properties?.id;
+        if (featureId) {
+          setSelectedFeature(featureId);
+        }
+      }
+    },
+    [setSelectedFeature]
+  );
+
   const styleType = course?.style.mapStyle || defaultMapStyle;
   const mapStyle = createMapStyle(styleType);
+
+  // Layers that should be clickable
+  const interactiveLayerIds = ['flightLines', 'obZones', 'fairways', 'dropzoneAreas-fill', 'obLines'];
 
   return (
     <div className="absolute inset-0">
@@ -36,7 +55,9 @@ export function MapContainer() {
         {...viewState}
         onMove={handleMove}
         onLoad={handleLoad}
+        onClick={handleClick}
         mapStyle={mapStyle}
+        interactiveLayerIds={interactiveLayerIds}
         attributionControl={{ compact: false }}
         style={{ width: '100%', height: '100%' }}
       >

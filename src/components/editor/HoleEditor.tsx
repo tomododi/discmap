@@ -1,15 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
 import { calculateDistance, formatDistance } from '../../utils/geo';
-import type { TeeFeature, BasketFeature, TeePosition } from '../../types/course';
+import type { TeeFeature, BasketFeature } from '../../types/course';
 
 export function HoleEditor() {
   const { t } = useTranslation();
   const units = useSettingsStore((s) => s.units);
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const activeHoleId = useEditorStore((s) => s.activeHoleId);
-  const activeTeePosition = useEditorStore((s) => s.activeTeePosition);
-  const setActiveTeePosition = useEditorStore((s) => s.setActiveTeePosition);
   const course = useCourseStore((s) => activeCourseId ? s.courses[activeCourseId] : null);
   const updateHole = useCourseStore((s) => s.updateHole);
 
@@ -20,18 +18,16 @@ export function HoleEditor() {
   const hole = course.holes.find((h) => h.id === activeHoleId);
   if (!hole) return null;
 
-  // Find tee and basket for the active tee position
-  const tee = hole.features.find(
-    (f) => f.properties.type === 'tee' && (f.properties as TeeFeature['properties']).position === activeTeePosition
-  ) as TeeFeature | undefined;
-
+  // Find tees and basket
+  const tees = hole.features.filter((f) => f.properties.type === 'tee') as TeeFeature[];
   const basket = hole.features.find((f) => f.properties.type === 'basket') as BasketFeature | undefined;
 
-  // Calculate distance
+  // Calculate distance from first tee to basket
+  const firstTee = tees[0];
   let distance: number | null = null;
-  if (tee && basket) {
+  if (firstTee && basket) {
     distance = calculateDistance(
-      tee.geometry.coordinates as [number, number],
+      firstTee.geometry.coordinates as [number, number],
       basket.geometry.coordinates as [number, number],
       units
     );
@@ -75,6 +71,31 @@ export function HoleEditor() {
         )}
       </div>
 
+      {/* Tee info */}
+      {tees.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            {t('layers.tees')} ({tees.length})
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {tees.map((tee, index) => (
+              <div
+                key={tee.properties.id}
+                className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-md border border-gray-200"
+              >
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: tee.properties.color || course.style.defaultTeeColor }}
+                />
+                <span className="text-xs text-gray-700">
+                  {tee.properties.name || `Tee ${index + 1}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Par selector */}
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -96,42 +117,6 @@ export function HoleEditor() {
               {par}
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* Tee position selector */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Tee Position
-        </label>
-        <div className="flex gap-1">
-          {(['pro', 'amateur', 'recreational'] as TeePosition[]).map((pos) => {
-            const hasTee = hole.features.some(
-              (f) => f.properties.type === 'tee' && (f.properties as TeeFeature['properties']).position === pos
-            );
-            return (
-              <button
-                key={pos}
-                onClick={() => setActiveTeePosition(pos)}
-                className={`
-                  flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors relative
-                  ${activeTeePosition === pos
-                    ? pos === 'pro'
-                      ? 'bg-red-500 text-white'
-                      : pos === 'amateur'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-green-500 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }
-                `}
-              >
-                {t(`teePosition.${pos}`)}
-                {hasTee && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
 

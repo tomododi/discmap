@@ -45,13 +45,18 @@ export function LayerControls() {
   const toggleAllLayers = useEditorStore((s) => s.toggleAllLayers);
 
   const layers: { name: keyof LayerVisibility; labelKey: string; color: string }[] = [
+    { name: 'infrastructure', labelKey: 'layers.infrastructure', color: '#16a34a' },
+    { name: 'landmarks', labelKey: 'layers.landmarks', color: '#f59e0b' },
     { name: 'tees', labelKey: 'layers.tees', color: '#22c55e' },
     { name: 'baskets', labelKey: 'layers.baskets', color: '#ef4444' },
     { name: 'flightLines', labelKey: 'layers.flightLines', color: '#3b82f6' },
-    { name: 'obZones', labelKey: 'layers.obZones', color: '#dc2626' },
     { name: 'fairways', labelKey: 'layers.fairways', color: '#86efac' },
+    { name: 'obZones', labelKey: 'layers.obZones', color: '#dc2626' },
+    { name: 'obLines', labelKey: 'layers.obLines', color: '#dc2626' },
+    { name: 'dropzoneAreas', labelKey: 'layers.dropzoneAreas', color: '#dc2626' },
     { name: 'dropzones', labelKey: 'layers.dropzones', color: '#f59e0b' },
     { name: 'mandatories', labelKey: 'layers.mandatories', color: '#8b5cf6' },
+    { name: 'annotations', labelKey: 'layers.annotations', color: '#6b7280' },
   ];
 
   const allVisible = Object.values(showLayers).every((v) => v);

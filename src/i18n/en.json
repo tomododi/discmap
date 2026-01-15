@@ -43,26 +43,80 @@
     "flightLine": "Flight Line",
     "obZone": "Out of Bounds",
     "fairway": "Fairway",
-    "dropzone": "Drop Zone",
-    "mandatory": "Mandatory"
+    "dropzone": "Dropzone",
+    "dropzoneArea": "OB",
+    "mandatory": "Mandatory",
+    "annotation": "Annotation",
+    "infrastructure": "Terrain",
+    "landmark": "Landmark"
   },
   "teePosition": {
     "pro": "Pro",
     "amateur": "Amateur",
     "recreational": "Recreational"
   },
+  "tee": {
+    "rotation": "Tee Direction",
+    "scrollToRotate": "Scroll on marker to rotate"
+  },
+  "dropzone": {
+    "rotation": "Marker Direction",
+    "scrollToRotate": "Scroll on marker to rotate"
+  },
+  "mandatory": {
+    "rotation": "Arrow Direction",
+    "lineAngle": "Boundary Line Angle",
+    "lineLength": "Boundary Line Length",
+    "scrollToRotate": "Scroll on marker to rotate"
+  },
+  "flightLine": {
+    "nodeCount": "{{count}} nodes",
+    "editHint": "Drag nodes to adjust. Click + to add nodes."
+  },
+  "annotation": {
+    "text": "Text",
+    "textPlaceholder": "Enter annotation text...",
+    "fontSize": "Font Size",
+    "fontFamily": "Font Family",
+    "fontWeight": "Font Weight",
+    "normal": "Normal",
+    "bold": "Bold",
+    "textColor": "Text Color",
+    "backgroundColor": "Background Color",
+    "borderColor": "Border Color"
+  },
   "toolbar": {
     "select": "Select",
-    "placeTee": "Place Tee",
-    "placeBasket": "Place Basket",
-    "drawFlightLine": "Draw Flight Line",
-    "drawOB": "Draw OB Zone",
-    "drawFairway": "Draw Fairway",
-    "placeDropzone": "Place Dropzone",
-    "placeMandatory": "Place Mandatory",
+    "placeTee": "Teepad",
+    "placeBasket": "Basket",
+    "drawFlightLine": "Flightline",
+    "drawOB": "OB Zone",
+    "drawFairway": "Fairway",
+    "placeDropzone": "Dropzone",
+    "drawDropzoneArea": "OB Area",
+    "drawOBLine": "OB Line",
+    "placeMandatory": "Mandatory",
+    "placeAnnotation": "Annotation",
+    "drawTerrain": "Terrain",
     "undo": "Undo",
     "redo": "Redo",
     "export": "Export"
+  },
+  "toolbarDesc": {
+    "select": "Click to select and edit features. Drag to move them.",
+    "tee": "Click on the map to place a tee pad. Each tee can have its own color.",
+    "basket": "Click on the map to place a basket (target).",
+    "flightLine": "Click on a tee or dropzone, then click on a basket to draw a flight line. You can add nodes later.",
+    "flightLineStep1": "Step 1: Click on a tee or dropzone to start the line",
+    "flightLineStep2": "Step 2: Click on a basket to complete the line",
+    "obZone": "Click to draw an out of bounds zone. Double-click to finish.",
+    "fairway": "Click to draw a fairway area. Double-click to finish.",
+    "dropzone": "Click on the map to place a dropzone marker.",
+    "dropzoneArea": "Draw the fairway area - everything outside will be OB. Double-click to finish.",
+    "obLine": "Draw an OB boundary line. Green side is fairway, red side is OB. Double-click to finish.",
+    "mandatory": "Click to place a mandatory. Scroll on it to rotate the arrow direction.",
+    "annotation": "Click to add a text annotation. Edit text and style in the properties panel.",
+    "infrastructure": "Draw terrain areas (forest, water, paths, etc.). Select type from dropdown, then draw polygon. Double-click to finish."
   },
   "editor": {
     "courseInfo": "Course Info",
@@ -70,19 +124,41 @@
     "style": "Style",
     "layers": "Layers",
     "properties": "Properties",
+    "landmarks": "Landmarks",
     "noFeatureSelected": "No feature selected",
-    "clickToSelect": "Click on a feature to edit its properties"
+    "clickToSelect": "Click on a feature to edit its properties",
+    "teeName": "Tee Name",
+    "teeNamePlaceholder": "e.g., Red, White, Blue...",
+    "addNotes": "Add notes..."
+  },
+  "style": {
+    "basketTop": "Top Band",
+    "basketBody": "Basket Body",
+    "basketChains": "Chains",
+    "basketPole": "Pole",
+    "zones": "Zones",
+    "obOpacity": "OB Opacity",
+    "fairwayOpacity": "Fairway Opacity",
+    "lineColor": "Line Color",
+    "lineWidth": "Line Width",
+    "otherMarkers": "Other Markers",
+    "teeColor": "Tee Color"
   },
   "layers": {
     "showAll": "Show All",
     "hideAll": "Hide All",
+    "infrastructure": "Terrain / Infrastructure",
     "tees": "Tee Pads",
     "baskets": "Baskets",
     "flightLines": "Flight Lines",
     "obZones": "OB Zones",
+    "obLines": "OB Lines",
     "fairways": "Fairways",
-    "dropzones": "Drop Zones",
-    "mandatories": "Mandatories"
+    "dropzones": "Dropzones",
+    "dropzoneAreas": "OB Areas",
+    "mandatories": "Mandatories",
+    "landmarks": "Landmarks",
+    "annotations": "Annotations"
   },
   "export": {
     "title": "Export Map",
@@ -92,13 +168,22 @@
     "includeBackground": "Include satellite background",
     "includeLegend": "Include legend",
     "includeTitle": "Include title",
-    "includeDistances": "Include distances",
+    "includeDistances": "Include hole numbers",
     "holes": "Holes to export",
     "allHoles": "All holes",
     "currentHole": "Current hole",
     "selectedHoles": "Selected holes",
     "download": "Download",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "fullCourse": "Full Course Map",
+    "individualHoles": "Individual Holes",
+    "exportType": "Export Type",
+    "terrain": "Terrain & Styling",
+    "mapTheme": "Map Theme",
+    "includeTerrain": "Styled background & terrain",
+    "includeInfrastructure": "Infrastructure zones",
+    "includeCompass": "Compass rose",
+    "includeScaleBar": "Scale bar"
   },
   "settings": {
     "title": "Settings",
@@ -141,5 +226,39 @@
   "units": {
     "m": "m",
     "ft": "ft"
+  },
+  "terrain": {
+    "theme": "Map Theme",
+    "types": "Available Terrain",
+    "hint": "Draw terrain areas using the polygon tool after selecting a terrain type from the toolbar.",
+    "exportHint": "Theme will be applied when exporting SVG maps.",
+    "ground": "Ground",
+    "vegetation": "Vegetation",
+    "water": "Water",
+    "surface": "Surface",
+    "grass": "Grass",
+    "roughGrass": "Rough Grass",
+    "forest": "Forest / Trees",
+    "waterPond": "Water / Pond",
+    "sand": "Sand / Bunker",
+    "path": "Walking Path",
+    "concrete": "Concrete / Paved",
+    "gravel": "Gravel",
+    "marsh": "Marsh / Wetland",
+    "rocks": "Rocky Area"
+  },
+  "landmarks": {
+    "title": "Landmarks",
+    "hint": "Select a landmark and click on the map to place it.",
+    "clickToPlace": "Click on map to place",
+    "tipsTitle": "Tips:",
+    "tip1": "Landmarks are decorative elements",
+    "tip2": "Drag to reposition after placing",
+    "tip3": "Use scroll wheel to rotate (when selected)",
+    "changeType": "Change Landmark Type",
+    "size": "Size",
+    "rotation": "Rotation",
+    "customColor": "Custom Color",
+    "scrollToRotate": "Use scroll wheel to rotate when selected"
   }
 }

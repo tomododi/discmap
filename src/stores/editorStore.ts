@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { DrawMode, EditorState, LayerVisibility } from '../types/editor';
+import type { DrawMode, EditorState, LayerVisibility, PendingFlightLine } from '../types/editor';
 import { DEFAULT_EDITOR_STATE } from '../types/editor';
-import type { TeePosition } from '../types/course';
+import type { TerrainType } from '../types/terrain';
+import type { LandmarkType } from '../types/landmarks';
 
 interface EditorActions {
   setActiveCourse: (courseId: string | null) => void;
@@ -10,12 +11,15 @@ interface EditorActions {
   setSelectedFeature: (featureId: string | null) => void;
   setDrawMode: (mode: DrawMode) => void;
   setIsDrawing: (isDrawing: boolean) => void;
-  setActiveTeePosition: (position: TeePosition) => void;
   setLayerVisibility: (layer: keyof LayerVisibility, visible: boolean) => void;
   toggleLayer: (layer: keyof LayerVisibility) => void;
   toggleAllLayers: (visible: boolean) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setPendingFlightLine: (pending: PendingFlightLine | null) => void;
+  clearPendingFlightLine: () => void;
+  setActiveTerrainType: (terrainType: TerrainType) => void;
+  setActiveLandmarkType: (landmarkType: LandmarkType) => void;
   reset: () => void;
 }
 
@@ -50,18 +54,14 @@ export const useEditorStore = create<EditorStore>()(
       set((state) => {
         state.drawMode = mode;
         state.isDrawing = mode !== 'select';
+        // Clear pending flight line when changing draw mode
+        state.pendingFlightLine = null;
       });
     },
 
     setIsDrawing: (isDrawing) => {
       set((state) => {
         state.isDrawing = isDrawing;
-      });
-    },
-
-    setActiveTeePosition: (position) => {
-      set((state) => {
-        state.activeTeePosition = position;
       });
     },
 
@@ -94,6 +94,30 @@ export const useEditorStore = create<EditorStore>()(
     setSidebarCollapsed: (collapsed) => {
       set((state) => {
         state.sidebarCollapsed = collapsed;
+      });
+    },
+
+    setPendingFlightLine: (pending) => {
+      set((state) => {
+        state.pendingFlightLine = pending;
+      });
+    },
+
+    clearPendingFlightLine: () => {
+      set((state) => {
+        state.pendingFlightLine = null;
+      });
+    },
+
+    setActiveTerrainType: (terrainType) => {
+      set((state) => {
+        state.activeTerrainType = terrainType;
+      });
+    },
+
+    setActiveLandmarkType: (landmarkType) => {
+      set((state) => {
+        state.activeLandmarkType = landmarkType;
       });
     },
 

@@ -38,6 +38,7 @@ interface CourseActions {
 
   // Style
   updateStyle: (courseId: string, style: Partial<CourseStyle>) => void;
+  updateCourseStyle: (courseId: string, style: Partial<CourseStyle>) => void;
 
   // Layouts
   addLayout: (courseId: string, layout: TournamentLayout) => void;
@@ -205,6 +206,16 @@ export const useCourseStore = create<CourseStore>()(
 
     // Style
     updateStyle: (courseId, style) => {
+      set((state) => {
+        const course = state.courses[courseId];
+        if (course) {
+          Object.assign(course.style, style);
+          course.updatedAt = new Date().toISOString();
+        }
+      });
+    },
+
+    updateCourseStyle: (courseId, style) => {
       set((state) => {
         const course = state.courses[courseId];
         if (course) {

@@ -1,4 +1,4 @@
-import { distance, point, length, bbox, center } from '@turf/turf';
+import { distance, point, length, bbox, center, destination } from '@turf/turf';
 import type { Feature, LineString, BBox } from 'geojson';
 import type { Units } from '../stores/settingsStore';
 
@@ -62,4 +62,18 @@ export function feetToMeters(feet: number): number {
 
 export function formatDistance(distance: number, units: Units): string {
   return `${distance} ${units === 'meters' ? 'm' : 'ft'}`;
+}
+
+/**
+ * Calculate a destination point given a start point, bearing (degrees), and distance (meters).
+ * Bearing: 0 = North, 90 = East, 180 = South, 270 = West
+ */
+export function calculateDestination(
+  from: [number, number],
+  bearing: number,
+  distanceMeters: number
+): [number, number] {
+  const fromPoint = point(from);
+  const dest = destination(fromPoint, distanceMeters / 1000, bearing, { units: 'kilometers' });
+  return dest.geometry.coordinates as [number, number];
 }

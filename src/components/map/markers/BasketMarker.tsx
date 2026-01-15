@@ -1,56 +1,103 @@
+interface BasketColors {
+  top: string;
+  body: string;
+  chains: string;
+  pole: string;
+}
+
 interface BasketMarkerProps {
   selected?: boolean;
   holeNumber?: number;
+  colors?: BasketColors;
+  highlighted?: boolean;
+  scale?: number;
 }
 
-export function BasketMarker({ selected, holeNumber }: BasketMarkerProps) {
+// Derive border color from main color (darker version)
+function darkenColor(hex: string | undefined): string {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) {
+    return '#666666';
+  }
+  const num = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, (num >> 16) - 40);
+  const g = Math.max(0, ((num >> 8) & 0x00ff) - 40);
+  const b = Math.max(0, (num & 0x0000ff) - 40);
+  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+}
+
+const defaultColors: BasketColors = {
+  top: '#ef4444',
+  body: '#fbbf24',
+  chains: '#a1a1aa',
+  pole: '#71717a',
+};
+
+export function BasketMarker({ selected, holeNumber, colors, highlighted, scale = 1 }: BasketMarkerProps) {
+  // Merge with defaults to handle missing properties
+  const mergedColors = {
+    top: colors?.top || defaultColors.top,
+    body: colors?.body || defaultColors.body,
+    chains: colors?.chains || defaultColors.chains,
+    pole: colors?.pole || defaultColors.pole,
+  };
+  const topBorder = darkenColor(mergedColors.top);
+  const bodyBorder = darkenColor(mergedColors.body);
+  const isHighlighted = selected || highlighted;
+  const s = scale;
+
+  // Base dimensions
+  const width = 32 * s;
+  const height = 44 * s;
+  const cx = 16 * s;
+
   return (
     <div
       className={`
         cursor-pointer transition-transform hover:scale-110
         ${selected ? 'scale-125' : ''}
+        ${highlighted && !selected ? 'animate-pulse scale-110' : ''}
       `}
     >
-      <svg width="32" height="44" viewBox="0 0 32 44" fill="none">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none">
         {/* Pole */}
-        <rect x="15" y="28" width="2" height="14" fill="#71717a" />
+        <rect x={15 * s} y={28 * s} width={2 * s} height={14 * s} fill={mergedColors.pole} />
         {/* Base */}
-        <ellipse cx="16" cy="42" rx="6" ry="2" fill="#71717a" />
+        <ellipse cx={cx} cy={42 * s} rx={6 * s} ry={2 * s} fill={mergedColors.pole} />
         {/* Basket body */}
         <path
-          d="M6 18 L26 18 L24 28 L8 28 Z"
-          fill="#fbbf24"
-          stroke={selected ? '#3b82f6' : '#b45309'}
-          strokeWidth={selected ? 2.5 : 1.5}
+          d={`M${6 * s} ${18 * s} L${26 * s} ${18 * s} L${24 * s} ${28 * s} L${8 * s} ${28 * s} Z`}
+          fill={mergedColors.body}
+          stroke={isHighlighted ? '#3b82f6' : bodyBorder}
+          strokeWidth={isHighlighted ? 2.5 * s : 1.5 * s}
         />
         {/* Chains */}
         <path
-          d="M8 10 L8 18 M12 8 L12 18 M16 6 L16 18 M20 8 L20 18 M24 10 L24 18"
-          stroke="#a1a1aa"
-          strokeWidth="1.5"
+          d={`M${8 * s} ${10 * s} L${8 * s} ${18 * s} M${12 * s} ${8 * s} L${12 * s} ${18 * s} M${16 * s} ${6 * s} L${16 * s} ${18 * s} M${20 * s} ${8 * s} L${20 * s} ${18 * s} M${24 * s} ${10 * s} L${24 * s} ${18 * s}`}
+          stroke={mergedColors.chains}
+          strokeWidth={1.5 * s}
           strokeLinecap="round"
         />
         {/* Top band (target) */}
         <ellipse
-          cx="16"
-          cy="6"
-          rx="10"
-          ry="3"
-          fill="#ef4444"
-          stroke={selected ? '#3b82f6' : '#b91c1c'}
-          strokeWidth={selected ? 2.5 : 1.5}
+          cx={cx}
+          cy={6 * s}
+          rx={10 * s}
+          ry={3 * s}
+          fill={mergedColors.top}
+          stroke={isHighlighted ? '#3b82f6' : topBorder}
+          strokeWidth={isHighlighted ? 2.5 * s : 1.5 * s}
         />
         {/* Inner ring */}
-        <ellipse cx="16" cy="18" rx="8" ry="2" fill="none" stroke="#b45309" strokeWidth="1" />
+        <ellipse cx={cx} cy={18 * s} rx={8 * s} ry={2 * s} fill="none" stroke={bodyBorder} strokeWidth={1 * s} />
         {/* Hole number in center */}
         {holeNumber && (
           <text
-            x="16"
-            y="9"
+            x={cx}
+            y={9 * s}
             textAnchor="middle"
             fontFamily="Arial, sans-serif"
             fontWeight="bold"
-            fontSize="8"
+            fontSize={8 * s}
             fill="#ffffff"
           >
             {holeNumber}

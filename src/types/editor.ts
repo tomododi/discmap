@@ -1,15 +1,29 @@
-import type { Course, TeePosition } from './course';
+import type { Course } from './course';
+import type { TerrainType } from './terrain';
+import type { LandmarkType } from './landmarks';
 
-export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'mandatory' | 'flightLine' | 'obZone' | 'fairway';
+export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'landmark';
 
 export interface LayerVisibility {
   tees: boolean;
   baskets: boolean;
   flightLines: boolean;
   obZones: boolean;
+  obLines: boolean;
   fairways: boolean;
   dropzones: boolean;
+  dropzoneAreas: boolean;
   mandatories: boolean;
+  annotations: boolean;
+  infrastructure: boolean;
+  landmarks: boolean;
+}
+
+export interface PendingFlightLine {
+  startFeatureId: string;
+  startType: 'tee' | 'dropzone';
+  startCoords: [number, number];
+  startColor: string;
 }
 
 export interface EditorState {
@@ -18,9 +32,11 @@ export interface EditorState {
   selectedFeatureId: string | null;
   isDrawing: boolean;
   drawMode: DrawMode;
-  activeTeePosition: TeePosition;
   showLayers: LayerVisibility;
   sidebarCollapsed: boolean;
+  pendingFlightLine: PendingFlightLine | null;
+  activeTerrainType: TerrainType;
+  activeLandmarkType: LandmarkType;
 }
 
 export interface CourseSnapshot {
@@ -34,9 +50,14 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
   baskets: true,
   flightLines: true,
   obZones: true,
+  obLines: true,
   fairways: true,
   dropzones: true,
+  dropzoneAreas: true,
   mandatories: true,
+  annotations: true,
+  infrastructure: true,
+  landmarks: true,
 };
 
 export const DEFAULT_EDITOR_STATE: EditorState = {
@@ -45,7 +66,9 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
   selectedFeatureId: null,
   isDrawing: false,
   drawMode: 'select',
-  activeTeePosition: 'pro',
   showLayers: { ...DEFAULT_LAYER_VISIBILITY },
   sidebarCollapsed: false,
+  pendingFlightLine: null,
+  activeTerrainType: 'forest',
+  activeLandmarkType: 'tree',
 };

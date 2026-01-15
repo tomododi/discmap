@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { TeePosition, CourseStyle } from '../types/course';
+import type { CourseStyle } from '../types/course';
 
 export type Units = 'meters' | 'feet';
 export type Theme = 'light' | 'dark' | 'system';
@@ -8,7 +8,6 @@ export type Language = 'en' | 'pl';
 
 interface AppSettings {
   units: Units;
-  defaultTeePosition: TeePosition;
   autoSave: boolean;
   autoSaveInterval: number;
   mapboxAccessToken: string;
@@ -21,7 +20,6 @@ interface AppSettings {
 
 interface SettingsActions {
   setUnits: (units: Units) => void;
-  setDefaultTeePosition: (position: TeePosition) => void;
   setAutoSave: (enabled: boolean) => void;
   setAutoSaveInterval: (interval: number) => void;
   setMapboxAccessToken: (token: string) => void;
@@ -37,7 +35,6 @@ type SettingsStore = AppSettings & SettingsActions;
 
 const DEFAULT_SETTINGS: AppSettings = {
   units: 'meters',
-  defaultTeePosition: 'pro',
   autoSave: true,
   autoSaveInterval: 5000,
   mapboxAccessToken: '',
@@ -45,7 +42,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   sidebarPosition: 'left',
   showToolTips: true,
   theme: 'system',
-  language: 'en',
+  language: 'pl',
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -54,7 +51,6 @@ export const useSettingsStore = create<SettingsStore>()(
       ...DEFAULT_SETTINGS,
 
       setUnits: (units) => set({ units }),
-      setDefaultTeePosition: (position) => set({ defaultTeePosition: position }),
       setAutoSave: (enabled) => set({ autoSave: enabled }),
       setAutoSaveInterval: (interval) => set({ autoSaveInterval: interval }),
       setMapboxAccessToken: (token) => set({ mapboxAccessToken: token }),

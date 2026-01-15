@@ -1,13 +1,15 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Map, List, Palette, Layers, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Map, List, Palette, Layers, Settings2, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useEditorStore, useSettingsStore } from '../../stores';
 import { HoleList } from '../editor/HoleList';
 import { HoleEditor } from '../editor/HoleEditor';
 import { LayerControls } from '../editor/LayerControls';
 import { FeatureProperties } from '../editor/FeatureProperties';
+import { ColorSchemeEditor } from '../editor/ColorSchemeEditor';
+import { LandmarkEditor } from '../editor/LandmarkEditor';
 
-type Tab = 'holes' | 'style' | 'layers' | 'properties';
+type Tab = 'holes' | 'style' | 'layers' | 'properties' | 'landmarks';
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -27,6 +29,7 @@ export function Sidebar() {
   const tabs: { id: Tab; icon: React.ReactNode; labelKey: string; show?: boolean }[] = [
     { id: 'holes', icon: <List size={18} />, labelKey: 'editor.holes' },
     { id: 'properties', icon: <Settings2 size={18} />, labelKey: 'editor.properties', show: !!selectedFeatureId },
+    { id: 'landmarks', icon: <MapPin size={18} />, labelKey: 'editor.landmarks' },
     { id: 'layers', icon: <Layers size={18} />, labelKey: 'editor.layers' },
     { id: 'style', icon: <Palette size={18} />, labelKey: 'editor.style' },
   ];
@@ -71,13 +74,13 @@ export function Sidebar() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto custom-scrollbar-x">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`
-              flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors
+              flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0
               ${activeTab === tab.id
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
@@ -85,7 +88,7 @@ export function Sidebar() {
             `}
           >
             {tab.icon}
-            <span className="hidden lg:inline text-xs">{t(tab.labelKey)}</span>
+            <span className="text-xs">{t(tab.labelKey)}</span>
           </button>
         ))}
       </div>
@@ -99,11 +102,12 @@ export function Sidebar() {
           </div>
         )}
         {activeTab === 'properties' && <FeatureProperties />}
-        {activeTab === 'style' && (
-          <div className="p-4 text-gray-500 text-sm">
-            {t('editor.style')} - Coming soon
+        {activeTab === 'landmarks' && (
+          <div className="p-3">
+            <LandmarkEditor />
           </div>
         )}
+        {activeTab === 'style' && <ColorSchemeEditor />}
         {activeTab === 'layers' && <LayerControls />}
       </div>
     </div>
