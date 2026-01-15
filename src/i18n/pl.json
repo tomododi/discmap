@@ -365,6 +365,11 @@
     "en": "English",
     "pl": "Polski"
   },
+  "mobile": {
+    "title": "Tylko na Komputerze",
+    "description": "DiscMap jest zaprojektowany dla przeglądarek desktopowych z większymi ekranami. Otwórz tę aplikację na komputerze, aby uzyskać najlepsze wrażenia.",
+    "features": "Edytor pól wymaga precyzyjnej kontroli myszą i szerszego widoku, aby efektywnie pracować z elementami mapy."
+  },
   "onboarding": {
     "welcome": {
       "title": "Witaj w DiscMap",

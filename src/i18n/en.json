@@ -365,6 +365,11 @@
     "en": "English",
     "pl": "Polski"
   },
+  "mobile": {
+    "title": "Desktop Only",
+    "description": "DiscMap is designed for desktop browsers with larger screens. Please open this app on a computer for the best experience.",
+    "features": "The course editor requires precise mouse control and a wider viewport to work with map features effectively."
+  },
   "onboarding": {
     "welcome": {
       "title": "Welcome to DiscMap",
