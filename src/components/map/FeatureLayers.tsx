@@ -31,23 +31,23 @@ export function FeatureLayers() {
   const units = useSettingsStore((s) => s.units);
   const mapBearing = useMapStore((s) => s.viewState.bearing);
 
-  // Update flight lines when tee or basket position changes
+  // Update flight lines when tee, basket, or dropzone position changes
   const updateFlightLinesForHole = useCallback(
-    (holeId: string, featureType: 'tee' | 'basket', newCoords: [number, number], teeId?: string) => {
+    (holeId: string, featureType: 'tee' | 'basket' | 'dropzone', newCoords: [number, number], featureId?: string) => {
       if (!activeCourseId || !course) return;
 
       const hole = course.holes.find((h) => h.id === holeId);
       if (!hole) return;
 
-      if (featureType === 'tee' && teeId) {
-        // Find flight lines that start from this tee
+      if ((featureType === 'tee' || featureType === 'dropzone') && featureId) {
+        // Find flight lines that start from this tee or dropzone
         const flightLines = hole.features.filter(
-          (f) => f.properties.type === 'flightLine' && f.properties.startFeatureId === teeId
+          (f) => f.properties.type === 'flightLine' && f.properties.startFeatureId === featureId
         ) as FlightLineFeature[];
 
         flightLines.forEach((flightLine) => {
           const coords = flightLine.geometry.coordinates as [number, number][];
-          // Update the start point (tee position)
+          // Update the start point (tee/dropzone position)
           const newLineCoords = [newCoords, ...coords.slice(1)];
           updateFeatureGeometry(activeCourseId, holeId, flightLine.properties.id, newLineCoords);
         });
@@ -70,14 +70,14 @@ export function FeatureLayers() {
 
   // Handler for dragging point features
   const handleDragEnd = useCallback(
-    (featureId: string, holeId: string, event: MarkerDragEvent, featureType?: 'tee' | 'basket') => {
+    (featureId: string, holeId: string, event: MarkerDragEvent, featureType?: 'tee' | 'basket' | 'dropzone') => {
       if (!activeCourseId) return;
       saveSnapshot(activeCourseId);
       const newCoords: [number, number] = [event.lngLat.lng, event.lngLat.lat];
       updateFeatureGeometry(activeCourseId, holeId, featureId, newCoords);
 
-      // Update flight lines if tee or basket was moved
-      if (featureType === 'tee') {
+      // Update flight lines if tee, basket, or dropzone was moved
+      if (featureType === 'tee' || featureType === 'dropzone') {
         updateFlightLinesForHole(holeId, featureType, newCoords, featureId);
       } else if (featureType === 'basket') {
         updateFlightLinesForHole(holeId, featureType, newCoords);
@@ -753,7 +753,7 @@ export function FeatureLayers() {
             anchor="center"
             rotationAlignment="viewport"
             draggable={!isFlightLineMode}
-            onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e)}
+            onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e, 'dropzone')}
             onClick={(e) => {
               e.originalEvent.stopPropagation();
               if (isFlightLineMode) {
