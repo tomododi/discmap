@@ -19,6 +19,192 @@ interface SVGViewport {
   };
 }
 
+// ============ ADAPTIVE SCALING & COLLISION DETECTION ============
+
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface PlacedElement {
+  id: string;
+  bbox: BoundingBox;
+  priority: number; // Lower = higher priority (will stay in place)
+}
+
+class CollisionManager {
+  private placedElements: PlacedElement[] = [];
+
+  clear(): void {
+    this.placedElements = [];
+  }
+
+  addElement(id: string, bbox: BoundingBox, priority: number): void {
+    this.placedElements.push({ id, bbox, priority });
+  }
+
+  checkCollision(bbox: BoundingBox, margin: number = 2): boolean {
+    const expanded = {
+      x: bbox.x - margin,
+      y: bbox.y - margin,
+      width: bbox.width + margin * 2,
+      height: bbox.height + margin * 2,
+    };
+
+    return this.placedElements.some((el) =>
+      this.boxesIntersect(expanded, el.bbox)
+    );
+  }
+
+  private boxesIntersect(a: BoundingBox, b: BoundingBox): boolean {
+    return !(
+      a.x + a.width < b.x ||
+      b.x + b.width < a.x ||
+      a.y + a.height < b.y ||
+      b.y + b.height < a.y
+    );
+  }
+
+  findNonCollidingPosition(
+    originalX: number,
+    originalY: number,
+    width: number,
+    height: number,
+    _anchorX: number,
+    _anchorY: number,
+    maxOffset: number = 80
+  ): { x: number; y: number; needsLeader: boolean } {
+    // Try original position first
+    const originalBbox: BoundingBox = {
+      x: originalX - width / 2,
+      y: originalY - height / 2,
+      width,
+      height,
+    };
+
+    if (!this.checkCollision(originalBbox, 4)) {
+      return { x: originalX, y: originalY, needsLeader: false };
+    }
+
+    // Try positions in expanding circles
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+    const distances = [20, 35, 50, 65, maxOffset];
+
+    for (const dist of distances) {
+      for (const angle of angles) {
+        const rad = (angle * Math.PI) / 180;
+        const testX = originalX + Math.cos(rad) * dist;
+        const testY = originalY + Math.sin(rad) * dist;
+
+        const testBbox: BoundingBox = {
+          x: testX - width / 2,
+          y: testY - height / 2,
+          width,
+          height,
+        };
+
+        if (!this.checkCollision(testBbox, 4)) {
+          return { x: testX, y: testY, needsLeader: dist > 25 };
+        }
+      }
+    }
+
+    // If no good position found, use the least crowded direction
+    // Default to above-right with max offset
+    return {
+      x: originalX + maxOffset * 0.7,
+      y: originalY - maxOffset * 0.7,
+      needsLeader: true,
+    };
+  }
+}
+
+interface DensityMetrics {
+  featureCount: number;
+  mapAreaPx: number;
+  avgFeatureDistance: number;
+  densityFactor: number; // 0-1, where 1 = very dense
+  markerScale: number; // Recommended marker scale
+  labelScale: number; // Recommended label scale
+}
+
+function calculateDensityMetrics(
+  features: DiscGolfFeature[],
+  viewport: SVGViewport
+): DensityMetrics {
+  const contentWidth = viewport.width - 2 * viewport.padding;
+  const contentHeight = viewport.height - 2 * viewport.padding;
+  const mapAreaPx = contentWidth * contentHeight;
+
+  // Get point features for distance calculation
+  const pointFeatures = features.filter(
+    (f) => f.geometry.type === 'Point'
+  );
+  const featureCount = pointFeatures.length;
+
+  if (featureCount < 2) {
+    return {
+      featureCount,
+      mapAreaPx,
+      avgFeatureDistance: Infinity,
+      densityFactor: 0,
+      markerScale: 1,
+      labelScale: 1,
+    };
+  }
+
+  // Calculate average distance between features in pixel space
+  let totalDistance = 0;
+  let distanceCount = 0;
+
+  const points = pointFeatures.map((f) =>
+    geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], viewport)
+  );
+
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      const dx = points[j][0] - points[i][0];
+      const dy = points[j][1] - points[i][1];
+      totalDistance += Math.sqrt(dx * dx + dy * dy);
+      distanceCount++;
+    }
+  }
+
+  const avgFeatureDistance = distanceCount > 0 ? totalDistance / distanceCount : Infinity;
+
+  // Calculate minimum distance between any two features
+  let minDistance = Infinity;
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      const dx = points[j][0] - points[i][0];
+      const dy = points[j][1] - points[i][1];
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDistance) minDistance = dist;
+    }
+  }
+
+  // Base marker size is about 40px, so if features are closer than 60px, we have density issues
+  const idealMinDistance = 70; // Minimum comfortable distance between markers
+  const densityFactor = Math.max(0, Math.min(1, 1 - minDistance / idealMinDistance));
+
+  // Calculate recommended scales
+  // For very dense courses (densityFactor close to 1), scale down to ~0.6
+  // For sparse courses (densityFactor close to 0), keep at 1.0
+  const markerScale = Math.max(0.5, 1 - densityFactor * 0.5);
+  const labelScale = Math.max(0.6, 1 - densityFactor * 0.4);
+
+  return {
+    featureCount,
+    mapAreaPx,
+    avgFeatureDistance,
+    densityFactor,
+    markerScale,
+    labelScale,
+  };
+}
+
 function calculateBounds(features: DiscGolfFeature[]): SVGViewport['bounds'] | null {
   if (features.length === 0) return null;
 
@@ -283,34 +469,50 @@ function generateMandatorySVG(
   color: string,
   scale: number = 1,
   lineAngle: number = 270,
-  lineLength: number = 60,
   lineColor: string = '#dc2626'
 ): string {
   const borderColor = darkenColor(color);
   const s = scale;
-  const cx = 16 * s;
-  const cy = 16 * s;
-  const displayLineLength = lineLength * s;
 
-  // Arrow body path (pointing right at 0 degrees)
+  // Larger canvas for the boundary line
+  const cx = 24 * s;
+  const cy = 24 * s;
+
+  // Fixed boundary line length with arrowhead
+  const boundaryLineLength = 20 * s;
+  const arrowheadSize = 6 * s;
+
+  // Calculate boundary line end point and arrowhead
+  const lineRad = ((lineAngle + 90) * Math.PI) / 180;
+  const lineEndX = cx + Math.cos(lineRad) * boundaryLineLength;
+  const lineEndY = cy + Math.sin(lineRad) * boundaryLineLength;
+
+  // Arrowhead points
+  const arrowAngle1 = lineRad + Math.PI * 0.8;
+  const arrowAngle2 = lineRad - Math.PI * 0.8;
+  const arrow1X = lineEndX + Math.cos(arrowAngle1) * arrowheadSize;
+  const arrow1Y = lineEndY + Math.sin(arrowAngle1) * arrowheadSize;
+  const arrow2X = lineEndX + Math.cos(arrowAngle2) * arrowheadSize;
+  const arrow2Y = lineEndY + Math.sin(arrowAngle2) * arrowheadSize;
+
+  // Direction arrow path (centered, pointing right at 0 degrees)
   const arrowPath = `
-    M${6 * s} ${14 * s}
-    L${18 * s} ${14 * s}
-    L${18 * s} ${10 * s}
-    L${28 * s} ${16 * s}
-    L${18 * s} ${22 * s}
-    L${18 * s} ${18 * s}
-    L${6 * s} ${18 * s}
+    M${cx - 10 * s} ${cy - 2 * s}
+    L${cx + 2 * s} ${cy - 2 * s}
+    L${cx + 2 * s} ${cy - 6 * s}
+    L${cx + 12 * s} ${cy}
+    L${cx + 2 * s} ${cy + 6 * s}
+    L${cx + 2 * s} ${cy + 2 * s}
+    L${cx - 10 * s} ${cy + 2 * s}
     Z
   `;
 
   return `
     <g transform="translate(${x - cx}, ${y - cy})">
-      <!-- Red boundary line (dashed) -->
-      <g transform="rotate(${lineAngle + 90} ${cx} ${cy})">
-        <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - displayLineLength}" stroke="${lineColor}" stroke-width="${3 * s}" stroke-dasharray="${6 * s} ${3 * s}" stroke-linecap="round" />
-      </g>
-      <!-- Arrow shape -->
+      <!-- Boundary line with arrowhead -->
+      <line x1="${cx}" y1="${cy}" x2="${lineEndX.toFixed(2)}" y2="${lineEndY.toFixed(2)}" stroke="${lineColor}" stroke-width="${2.5 * s}" stroke-linecap="round" />
+      <path d="M${lineEndX.toFixed(2)},${lineEndY.toFixed(2)} L${arrow1X.toFixed(2)},${arrow1Y.toFixed(2)} L${arrow2X.toFixed(2)},${arrow2Y.toFixed(2)} Z" fill="${lineColor}" />
+      <!-- Direction arrow -->
       <g transform="rotate(${rotation} ${cx} ${cy})">
         <path d="${arrowPath}" fill="${color}" stroke="${borderColor}" stroke-width="${1.5 * s}" stroke-linejoin="round" />
       </g>
@@ -485,6 +687,12 @@ export function generateCourseSVG(options: SVGExportOptions): string {
   const viewport: SVGViewport = { width, height, padding, bounds };
   const style = course.style;
 
+  // Initialize collision manager and calculate density metrics
+  const collisionManager = new CollisionManager();
+  const densityMetrics = calculateDensityMetrics(allFeatures, viewport);
+  const markerScale = densityMetrics.markerScale;
+  const labelScale = densityMetrics.labelScale;
+
   // Calculate meters per pixel for scale bar
   const lngRange = bounds.maxLng - bounds.minLng;
   const metersPerDegree = 111320 * Math.cos((bounds.minLat + bounds.maxLat) / 2 * Math.PI / 180);
@@ -640,7 +848,15 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     svg += `<path d="${path}" fill="none" stroke="${lineColor}" stroke-width="${style.flightLineWidth}" stroke-dasharray="8 4" stroke-linecap="round" stroke-linejoin="round" />`;
   });
 
-  // Flight Line Distance Labels
+  // Flight Line Distance Labels - stored for later rendering after markers
+  // This allows collision detection to work properly
+  const distanceLabelData: Array<{
+    coords: [number, number][];
+    lineColor: string;
+    distanceLabel: string;
+    midPoint: [number, number];
+  }> = [];
+
   flightLines.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[][] }).coordinates as [number, number][];
     if (coords.length < 2) return;
@@ -663,49 +879,62 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     }
     const distanceLabel = Math.round(totalDist) + 'm';
 
-    // Convert midpoint to SVG coordinates
-    const [labelX, labelY] = geoToSVG(midPoint, viewport);
-
-    // Draw distance label
-    const labelWidth = distanceLabel.length * 8 + 12;
-    svg += `
-      <g transform="translate(${labelX}, ${labelY - 12})">
-        <rect x="${-labelWidth / 2}" y="-10" width="${labelWidth}" height="20" rx="10" fill="white" stroke="${lineColor}" stroke-width="2" />
-        <text x="0" y="5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="11" fill="${lineColor}">${distanceLabel}</text>
-      </g>
-    `;
+    distanceLabelData.push({ coords, lineColor, distanceLabel, midPoint });
   });
 
-  // Dropzones
+  // Dropzones - with adaptive scaling
   const dropzones = allFeatures.filter((f) => f.properties.type === 'dropzone');
   dropzones.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
     const [x, y] = geoToSVG(coords, viewport);
     const props = f.properties as DropzoneProperties;
     const dzColor = props.color || style.dropzoneColor;
-    svg += generateDropzoneSVG(x, y, dzColor, 1, props.rotation ?? 0);
+    const scaledDzSize = 32 * markerScale;
+    svg += generateDropzoneSVG(x, y, dzColor, markerScale, props.rotation ?? 0);
+    // Register dropzone bounding box
+    collisionManager.addElement(`dz-${f.properties.id}`, {
+      x: x - scaledDzSize / 2,
+      y: y - (20 * markerScale) / 2,
+      width: scaledDzSize,
+      height: 20 * markerScale,
+    }, 2);
   });
 
-  // Mandatories
+  // Mandatories - with adaptive scaling
   const mandatories = allFeatures.filter((f) => f.properties.type === 'mandatory');
   mandatories.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
     const [x, y] = geoToSVG(coords, viewport);
     const props = f.properties as { rotation: number; lineAngle?: number; lineLength?: number };
-    svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 1, props.lineAngle ?? 270, props.lineLength ?? 60);
+    svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, markerScale, props.lineAngle ?? 270);
+    // Register mandatory bounding box (48px canvas size)
+    collisionManager.addElement(`mando-${f.properties.id}`, {
+      x: x - 24 * markerScale,
+      y: y - 24 * markerScale,
+      width: 48 * markerScale,
+      height: 48 * markerScale,
+    }, 3);
   });
 
-  // Landmarks
+  // Landmarks - with collision registration
   const landmarks = allFeatures.filter((f) => f.properties.type === 'landmark');
   landmarks.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
     const [x, y] = geoToSVG(coords, viewport);
     const props = f.properties as LandmarkProperties;
+    const landmarkSize = (props.size ?? 1) * 24 * markerScale; // Approximate landmark size
     svg += generateLandmarkSVG(props.landmarkType, x, y, {
-      size: props.size ?? 1,
+      size: (props.size ?? 1) * markerScale,
       rotation: props.rotation ?? 0,
       color: props.color,
     });
+    // Register landmark bounding box
+    collisionManager.addElement(`landmark-${f.properties.id}`, {
+      x: x - landmarkSize / 2,
+      y: y - landmarkSize / 2,
+      width: landmarkSize,
+      height: landmarkSize,
+    }, 4);
   });
 
   // Annotations
@@ -734,7 +963,7 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     );
   });
 
-  // Tees
+  // Tees - with adaptive scaling and collision registration
   const tees = allFeatures.filter((f) => f.properties.type === 'tee');
   tees.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
@@ -745,10 +974,19 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     const holeNumber = includeHoleNumbers
       ? holesToExport.find((h) => h.id === holeId)?.number
       : undefined;
-    svg += generateTeeSVG(x, y, teeColor, holeNumber, props.name, 1, props.rotation ?? 0);
+    const scaledTeeW = 32 * markerScale;
+    const scaledTeeH = 20 * markerScale;
+    svg += generateTeeSVG(x, y, teeColor, holeNumber, props.name, markerScale, props.rotation ?? 0);
+    // Register tee bounding box (highest priority - will not be moved)
+    collisionManager.addElement(`tee-${f.properties.id}`, {
+      x: x - scaledTeeW / 2,
+      y: y - scaledTeeH / 2,
+      width: scaledTeeW,
+      height: scaledTeeH,
+    }, 1);
   });
 
-  // Baskets
+  // Baskets - with adaptive scaling and collision registration
   const baskets = allFeatures.filter((f) => f.properties.type === 'basket');
   baskets.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
@@ -757,7 +995,108 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     const holeNumber = includeHoleNumbers
       ? holesToExport.find((h) => h.id === holeId)?.number
       : undefined;
-    svg += generateBasketSVG(x, y, holeNumber, style);
+    const scaledBasketW = 32 * markerScale;
+    const scaledBasketH = 44 * markerScale;
+    svg += generateBasketSVG(x, y, holeNumber, style, markerScale);
+    // Register basket bounding box (highest priority)
+    collisionManager.addElement(`basket-${f.properties.id}`, {
+      x: x - scaledBasketW / 2,
+      y: y - scaledBasketH, // basket anchors at bottom
+      width: scaledBasketW,
+      height: scaledBasketH,
+    }, 1);
+  });
+
+  // Now render distance labels with collision detection
+  distanceLabelData.forEach((labelData, index) => {
+    const [anchorX, anchorY] = geoToSVG(labelData.midPoint, viewport);
+    const scaledFontSize = 11 * labelScale;
+    const labelWidth = (labelData.distanceLabel.length * scaledFontSize * 0.7 + 12) * labelScale;
+    const labelHeight = 20 * labelScale;
+
+    // Calculate perpendicular direction to the flight line for smarter label placement
+    const coords = labelData.coords;
+    const midIdx = Math.floor(coords.length / 2);
+    const p1Geo = coords.length === 2 ? coords[0] : coords[Math.max(0, midIdx - 1)];
+    const p2Geo = coords.length === 2 ? coords[1] : coords[Math.min(coords.length - 1, midIdx + 1)];
+    const [p1x, p1y] = geoToSVG(p1Geo, viewport);
+    const [p2x, p2y] = geoToSVG(p2Geo, viewport);
+
+    // Calculate perpendicular offset (normal to the line)
+    const dx = p2x - p1x;
+    const dy = p2y - p1y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const perpX = len > 0 ? -dy / len : 0;
+    const perpY = len > 0 ? dx / len : -1;
+
+    // Try positions perpendicular to the line first (both sides)
+    const baseOffset = 18 * labelScale;
+    const tryPositions: Array<{ x: number; y: number; dist: number }> = [
+      { x: anchorX + perpX * baseOffset, y: anchorY + perpY * baseOffset, dist: baseOffset },
+      { x: anchorX - perpX * baseOffset, y: anchorY - perpY * baseOffset, dist: baseOffset },
+      { x: anchorX + perpX * baseOffset * 2, y: anchorY + perpY * baseOffset * 2, dist: baseOffset * 2 },
+      { x: anchorX - perpX * baseOffset * 2, y: anchorY - perpY * baseOffset * 2, dist: baseOffset * 2 },
+    ];
+
+    let labelX = anchorX;
+    let labelY = anchorY - baseOffset;
+    let needsLeader = false;
+    let foundPosition = false;
+
+    // Try perpendicular positions first
+    for (const pos of tryPositions) {
+      const testBbox: BoundingBox = {
+        x: pos.x - labelWidth / 2,
+        y: pos.y - labelHeight / 2,
+        width: labelWidth,
+        height: labelHeight,
+      };
+      if (!collisionManager.checkCollision(testBbox, 4)) {
+        labelX = pos.x;
+        labelY = pos.y;
+        needsLeader = pos.dist > baseOffset * 1.5;
+        foundPosition = true;
+        break;
+      }
+    }
+
+    // If no perpendicular position works, use the general collision manager
+    if (!foundPosition) {
+      const result = collisionManager.findNonCollidingPosition(
+        anchorX,
+        anchorY - baseOffset,
+        labelWidth,
+        labelHeight,
+        anchorX,
+        anchorY,
+        60 * labelScale
+      );
+      labelX = result.x;
+      labelY = result.y;
+      needsLeader = result.needsLeader;
+    }
+
+    // Register the label position
+    collisionManager.addElement(`label-${index}`, {
+      x: labelX - labelWidth / 2,
+      y: labelY - labelHeight / 2,
+      width: labelWidth,
+      height: labelHeight,
+    }, 5);
+
+    // Draw leader line if label was moved significantly
+    if (needsLeader) {
+      svg += `<line x1="${anchorX}" y1="${anchorY}" x2="${labelX}" y2="${labelY}" stroke="${labelData.lineColor}" stroke-width="${1 * labelScale}" stroke-opacity="0.5" />`;
+      svg += `<circle cx="${anchorX}" cy="${anchorY}" r="${3 * labelScale}" fill="${labelData.lineColor}" opacity="0.5" />`;
+    }
+
+    // Draw distance label
+    svg += `
+      <g transform="translate(${labelX}, ${labelY})">
+        <rect x="${-labelWidth / 2}" y="${-labelHeight / 2}" width="${labelWidth}" height="${labelHeight}" rx="${10 * labelScale}" fill="white" stroke="${labelData.lineColor}" stroke-width="${2 * labelScale}" />
+        <text x="0" y="${scaledFontSize / 3}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${scaledFontSize}" fill="${labelData.lineColor}">${labelData.distanceLabel}</text>
+      </g>
+    `;
   });
 
   // Title with styled background
@@ -956,7 +1295,7 @@ export function generatePrintLayoutSVG(options: PrintLayoutOptions): string {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
     const [x, y] = geoToSVG(coords, mapViewport);
     const props = f.properties as { rotation: number; lineAngle?: number; lineLength?: number };
-    svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 0.8, props.lineAngle ?? 270, (props.lineLength ?? 60) * 0.8);
+    svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 0.8, props.lineAngle ?? 270);
   });
 
   // Landmarks
@@ -1173,7 +1512,7 @@ export function generateHolePageSVG(
     holeFeatures.filter((f) => f.properties.type === 'mandatory').forEach((f) => {
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
       const props = f.properties as { rotation: number; lineAngle?: number; lineLength?: number };
-      svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 1.2, props.lineAngle ?? 270, (props.lineLength ?? 60) * 1.2);
+      svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 1.2, props.lineAngle ?? 270);
     });
 
     // Landmarks

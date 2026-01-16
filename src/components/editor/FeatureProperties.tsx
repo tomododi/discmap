@@ -317,27 +317,6 @@ export function FeatureProperties() {
             </div>
           </div>
           <p className="text-xs text-gray-500 text-center">{t('mandatory.scrollToRotate')}</p>
-
-          {/* Line length */}
-          <div className="border-t border-gray-200 pt-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('mandatory.lineLength')} ({(feature.properties as { lineLength?: number }).lineLength ?? 60}px)
-            </label>
-            <input
-              type="range"
-              min="30"
-              max="150"
-              step="10"
-              value={(feature.properties as { lineLength?: number }).lineLength ?? 60}
-              onChange={(e) => handleUpdate({ lineLength: parseInt(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>30</span>
-              <span>90</span>
-              <span>150</span>
-            </div>
-          </div>
         </div>
       )}
 

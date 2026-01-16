@@ -791,7 +791,6 @@ export function FeatureLayers() {
           <MandatoryMarker
             rotation={feature.properties.rotation ?? 0}
             lineAngle={feature.properties.lineAngle ?? 270}
-            lineLength={feature.properties.lineLength ?? 60}
             selected={selectedFeatureId === feature.properties.id}
             color={style.mandatoryColor}
             onRotate={(newRotation) => handleFeatureRotate(feature.properties.id, feature.properties.holeId, newRotation)}

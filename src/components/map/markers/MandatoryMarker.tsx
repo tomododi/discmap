@@ -1,13 +1,11 @@
 interface MandatoryMarkerProps {
   rotation?: number; // Arrow rotation angle in degrees (0 = right, 90 = down)
-  lineAngle?: number; // Line rotation angle in degrees (absolute, 0-360)
-  lineLength?: number; // Line length in pixels for display
+  lineAngle?: number; // Boundary line angle in degrees (direction the boundary extends)
   selected?: boolean;
   color?: string; // Arrow color (purple default)
-  lineColor?: string; // Line color (red default)
+  lineColor?: string; // Boundary line color (red default)
   scale?: number;
   onRotate?: (newRotation: number) => void;
-  onLineAngleChange?: (newAngle: number) => void;
   mapBearing?: number;
 }
 
@@ -29,7 +27,6 @@ const defaultLineColor = '#dc2626'; // Red
 export function MandatoryMarker({
   rotation = 0,
   lineAngle = 270,
-  lineLength = 60,
   selected,
   color = defaultArrowColor,
   lineColor = defaultLineColor,
@@ -40,13 +37,14 @@ export function MandatoryMarker({
   const borderColor = darkenColor(color);
   const s = scale;
 
-  // Base dimensions
-  const size = 32 * s;
-  const cx = 16 * s;
-  const cy = 16 * s;
+  // Base dimensions - slightly larger canvas for boundary line
+  const size = 48 * s;
+  const cx = 24 * s; // Center
+  const cy = 24 * s;
 
-  // Line length for display (scaled)
-  const displayLineLength = lineLength * s;
+  // Fixed boundary line length (does not scale with zoom)
+  const boundaryLineLength = 20 * s;
+  const arrowheadSize = 6 * s;
 
   // Counter-rotate against map bearing
   const effectiveRotation = rotation - mapBearing;
@@ -63,6 +61,20 @@ export function MandatoryMarker({
     }
   };
 
+  // Calculate arrowhead points for boundary line
+  // Line goes from center outward in lineAngle direction
+  const lineRad = ((effectiveLineAngle + 90) * Math.PI) / 180;
+  const lineEndX = cx + Math.cos(lineRad) * boundaryLineLength;
+  const lineEndY = cy + Math.sin(lineRad) * boundaryLineLength;
+
+  // Arrowhead at the end of boundary line
+  const arrowAngle1 = lineRad + Math.PI * 0.8;
+  const arrowAngle2 = lineRad - Math.PI * 0.8;
+  const arrow1X = lineEndX + Math.cos(arrowAngle1) * arrowheadSize;
+  const arrow1Y = lineEndY + Math.sin(arrowAngle1) * arrowheadSize;
+  const arrow2X = lineEndX + Math.cos(arrowAngle2) * arrowheadSize;
+  const arrow2Y = lineEndY + Math.sin(arrowAngle2) * arrowheadSize;
+
   return (
     <div
       className={`
@@ -72,39 +84,39 @@ export function MandatoryMarker({
       onWheel={handleWheel}
       title={selected ? 'Scroll to rotate arrow' : undefined}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" style={{ overflow: 'visible' }}>
-        {/* Red boundary line - rotates independently, dashed style */}
-        {/* Line is drawn pointing UP, so add 90° to align with coordinate system (0=right) */}
-        <g transform={`rotate(${effectiveLineAngle + 90} ${cx} ${cy})`}>
-          <line
-            x1={cx}
-            y1={cy}
-            x2={cx}
-            y2={cy - displayLineLength}
-            stroke={lineColor}
-            strokeWidth={3 * s}
-            strokeDasharray={`${6 * s} ${3 * s}`}
-            strokeLinecap="round"
-          />
-        </g>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none">
+        {/* Red boundary line with arrowhead - fixed length, points in boundary direction */}
+        <line
+          x1={cx}
+          y1={cy}
+          x2={lineEndX}
+          y2={lineEndY}
+          stroke={lineColor}
+          strokeWidth={2.5 * s}
+          strokeLinecap="round"
+        />
+        {/* Arrowhead */}
+        <path
+          d={`M${lineEndX},${lineEndY} L${arrow1X},${arrow1Y} L${arrow2X},${arrow2Y} Z`}
+          fill={lineColor}
+        />
 
-        {/* Purple arrow - no circle, just arrow shape */}
+        {/* Purple direction arrow - shows which way to pass */}
         <g transform={`rotate(${effectiveRotation} ${cx} ${cy})`}>
-          {/* Arrow body */}
           <path
             d={`
-              M${6 * s} ${14 * s}
-              L${18 * s} ${14 * s}
-              L${18 * s} ${10 * s}
-              L${28 * s} ${16 * s}
-              L${18 * s} ${22 * s}
-              L${18 * s} ${18 * s}
-              L${6 * s} ${18 * s}
+              M${cx - 10 * s} ${cy - 2 * s}
+              L${cx + 2 * s} ${cy - 2 * s}
+              L${cx + 2 * s} ${cy - 6 * s}
+              L${cx + 12 * s} ${cy}
+              L${cx + 2 * s} ${cy + 6 * s}
+              L${cx + 2 * s} ${cy + 2 * s}
+              L${cx - 10 * s} ${cy + 2 * s}
               Z
             `}
             fill={color}
             stroke={selected ? '#3b82f6' : borderColor}
-            strokeWidth={selected ? 2.5 * s : 1.5 * s}
+            strokeWidth={selected ? 2 * s : 1.5 * s}
             strokeLinejoin="round"
           />
         </g>
