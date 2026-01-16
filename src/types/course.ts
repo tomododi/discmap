@@ -101,6 +101,57 @@ export interface InfrastructureProperties extends BaseFeatureProperties {
   cornerRadius?: number; // Corner rounding in meters (0 = sharp corners)
 }
 
+// Course-level terrain feature (not tied to a specific hole)
+export interface TerrainFeatureProperties {
+  id: string;
+  type: 'terrain';
+  terrainType: TerrainType;
+  label?: string;
+  customColors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+  };
+  opacity?: number;
+  cornerRadius?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TerrainFeature = Feature<Polygon, TerrainFeatureProperties>;
+
+// Course-level path feature (LineString with adjustable stroke width)
+export interface PathFeatureProperties {
+  id: string;
+  type: 'path';
+  label?: string;
+  color?: string;
+  strokeWidth?: number; // Line width in pixels (default 4)
+  opacity?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PathFeature = Feature<LineString, PathFeatureProperties>;
+
+// Course-level landmark feature (not tied to a specific hole)
+export interface CourseLandmarkProperties {
+  id: string;
+  type: 'courseLandmark';
+  landmarkType: LandmarkType;
+  label?: string;
+  size?: number; // Scale factor (1 = default size)
+  rotation?: number; // Rotation in degrees
+  color?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CourseLandmarkFeature = Feature<Point, CourseLandmarkProperties>;
+
 export interface LandmarkProperties extends BaseFeatureProperties {
   type: 'landmark';
   landmarkType: LandmarkType;
@@ -221,6 +272,9 @@ export interface Course {
   yearEstablished?: number;
   difficulty?: 'beginner' | 'intermediate' | 'advanced' | 'professional';
   website?: string;
+  terrainFeatures: TerrainFeature[]; // Course-level terrain polygons (not tied to holes)
+  pathFeatures: PathFeature[]; // Course-level path lines (not tied to holes)
+  landmarkFeatures: CourseLandmarkFeature[]; // Course-level landmarks (not tied to holes)
   createdAt: string;
   updatedAt: string;
   version: number;
@@ -295,6 +349,9 @@ export function createEmptyCourse(name: string, coordinates: [number, number]): 
     totalHoles: 1,
     style: { ...DEFAULT_COURSE_STYLE },
     layouts: [],
+    terrainFeatures: [],
+    pathFeatures: [],
+    landmarkFeatures: [],
     createdAt: now,
     updatedAt: now,
     version: 1,

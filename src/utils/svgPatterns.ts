@@ -224,34 +224,6 @@ function generateSandPattern(id: string, colors: PatternColors, scale: number = 
   `;
 }
 
-function generatePathPattern(id: string, colors: PatternColors, scale: number = 1): string {
-  const s = scale;
-  const texture: string[] = [];
-
-  // Create gravel/path texture
-  for (let i = 0; i < 50; i++) {
-    const x = Math.random() * 20 * s;
-    const y = Math.random() * 20 * s;
-    const w = (Math.random() * 2 + 1) * s;
-    const h = (Math.random() * 1.5 + 0.5) * s;
-    const rotation = Math.random() * 360;
-    const color = Math.random() > 0.6 ? colors.secondary : colors.accent;
-    const opacity = Math.random() * 0.4 + 0.3;
-
-    texture.push(`
-      <ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${w.toFixed(1)}" ry="${h.toFixed(1)}"
-               fill="${color}" opacity="${opacity.toFixed(2)}" transform="rotate(${rotation.toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})" />
-    `);
-  }
-
-  return `
-    <pattern id="${id}" patternUnits="userSpaceOnUse" width="${20 * s}" height="${20 * s}">
-      <rect width="100%" height="100%" fill="${colors.primary}" />
-      ${texture.join('')}
-    </pattern>
-  `;
-}
-
 function generateConcretePattern(id: string, colors: PatternColors, scale: number = 1): string {
   const s = scale;
 
@@ -409,7 +381,6 @@ export function generateTerrainPattern(
     forest: generateForestPattern,
     water: generateWaterPattern,
     sand: generateSandPattern,
-    path: generatePathPattern,
     concrete: generateConcretePattern,
     gravel: generateGravelPattern,
     marsh: generateMarshPattern,

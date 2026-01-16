@@ -4,14 +4,18 @@ import { DEFAULT_COURSE_STYLE } from '../types/course';
 
 const STORAGE_KEY_PREFIX = 'discmap_course_';
 
-// Migrate course style to include new properties
-function migrateCourseStyle(course: Course): Course {
+// Migrate course to include new properties (style + course-level features)
+function migrateCourse(course: Course): Course {
   return {
     ...course,
     style: {
       ...DEFAULT_COURSE_STYLE,
       ...course.style,
     },
+    // Ensure course-level feature arrays exist
+    terrainFeatures: course.terrainFeatures ?? [],
+    pathFeatures: course.pathFeatures ?? [],
+    landmarkFeatures: course.landmarkFeatures ?? [],
   };
 }
 
@@ -21,7 +25,7 @@ export async function saveCourse(course: Course): Promise<void> {
 
 export async function loadCourse(courseId: string): Promise<Course | undefined> {
   const course = await get(`${STORAGE_KEY_PREFIX}${courseId}`) as Course | undefined;
-  return course ? migrateCourseStyle(course) : undefined;
+  return course ? migrateCourse(course) : undefined;
 }
 
 export async function deleteCourse(courseId: string): Promise<void> {
@@ -38,7 +42,7 @@ export async function loadAllCourses(): Promise<Record<string, Course>> {
   for (const key of courseKeys) {
     const course = (await get(key as string)) as Course;
     if (course) {
-      courses[course.id] = migrateCourseStyle(course);
+      courses[course.id] = migrateCourse(course);
     }
   }
   return courses;

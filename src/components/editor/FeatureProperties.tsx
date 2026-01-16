@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Trash2, X, Trees } from 'lucide-react';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
 import { calculateDistance, formatDistance, calculateLineLength } from '../../utils/geo';
-import type { DiscGolfFeature, TeeFeature, BasketFeature, DropzoneFeature, DropzoneAreaFeature, FlightLineFeature, AnnotationFeature, InfrastructureFeature, OBLineFeature, LandmarkFeature } from '../../types/course';
+import type { DiscGolfFeature, TeeFeature, BasketFeature, DropzoneFeature, DropzoneAreaFeature, FlightLineFeature, AnnotationFeature, OBLineFeature, LandmarkFeature, TerrainFeature, PathFeature, CourseLandmarkFeature } from '../../types/course';
 import { DEFAULT_TEE_COLORS } from '../../types/course';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
 import { LANDMARK_DEFINITIONS, LANDMARK_CATEGORIES, getLandmarksByCategory } from '../../types/landmarks';
@@ -20,6 +20,12 @@ export function FeatureProperties() {
   const course = useCourseStore((s) => activeCourseId ? s.courses[activeCourseId] : null);
   const updateFeature = useCourseStore((s) => s.updateFeature);
   const deleteFeature = useCourseStore((s) => s.deleteFeature);
+  const updateTerrainFeature = useCourseStore((s) => s.updateTerrainFeature);
+  const deleteTerrainFeature = useCourseStore((s) => s.deleteTerrainFeature);
+  const updatePathFeature = useCourseStore((s) => s.updatePathFeature);
+  const deletePathFeature = useCourseStore((s) => s.deletePathFeature);
+  const updateLandmarkFeature = useCourseStore((s) => s.updateLandmarkFeature);
+  const deleteLandmarkFeature = useCourseStore((s) => s.deleteLandmarkFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
 
   if (!course || !selectedFeatureId) {
@@ -31,9 +37,12 @@ export function FeatureProperties() {
     );
   }
 
-  // Find feature in active hole first, then search all holes
+  // Find feature in active hole first, then search all holes, then course-level features
   let hole = activeHoleId ? course.holes.find((h) => h.id === activeHoleId) : null;
-  let feature = hole?.features.find((f) => f.properties.id === selectedFeatureId);
+  let feature: DiscGolfFeature | TerrainFeature | PathFeature | CourseLandmarkFeature | undefined = hole?.features.find((f) => f.properties.id === selectedFeatureId);
+  let isTerrainFeature = false;
+  let isPathFeature = false;
+  let isCourseLandmark = false;
 
   // If not found in active hole, search all holes
   if (!feature) {
@@ -47,7 +56,36 @@ export function FeatureProperties() {
     }
   }
 
-  if (!feature || !hole) {
+  // If still not found, search course-level terrain features
+  if (!feature && course.terrainFeatures) {
+    const terrainFound = course.terrainFeatures.find((f) => f.properties.id === selectedFeatureId);
+    if (terrainFound) {
+      feature = terrainFound;
+      isTerrainFeature = true;
+    }
+  }
+
+  // If still not found, search course-level path features
+  if (!feature && course.pathFeatures) {
+    const pathFound = course.pathFeatures.find((f) => f.properties.id === selectedFeatureId);
+    if (pathFound) {
+      feature = pathFound;
+      isPathFeature = true;
+    }
+  }
+
+  // If still not found, search course-level landmark features
+  if (!feature && course.landmarkFeatures) {
+    const landmarkFound = course.landmarkFeatures.find((f) => f.properties.id === selectedFeatureId);
+    if (landmarkFound) {
+      feature = landmarkFound;
+      isCourseLandmark = true;
+    }
+  }
+
+  const isCourseLevel = isTerrainFeature || isPathFeature || isCourseLandmark;
+
+  if (!feature || (!hole && !isCourseLevel)) {
     return (
       <div className="p-4 text-center text-gray-500 text-sm">
         <p>{t('editor.noFeatureSelected')}</p>
@@ -55,16 +93,32 @@ export function FeatureProperties() {
     );
   }
 
-  const featureHoleId = hole.id;
+  const featureHoleId = hole?.id;
 
-  const handleUpdate = (updates: Partial<DiscGolfFeature['properties']>) => {
+  const handleUpdate = (updates: Partial<DiscGolfFeature['properties']> | Partial<TerrainFeature['properties']> | Partial<PathFeature['properties']> | Partial<CourseLandmarkFeature['properties']>) => {
     saveSnapshot(course.id);
-    updateFeature(course.id, featureHoleId, selectedFeatureId, updates);
+    if (isTerrainFeature) {
+      updateTerrainFeature(course.id, selectedFeatureId, updates as Partial<TerrainFeature['properties']>);
+    } else if (isPathFeature) {
+      updatePathFeature(course.id, selectedFeatureId, updates as Partial<PathFeature['properties']>);
+    } else if (isCourseLandmark) {
+      updateLandmarkFeature(course.id, selectedFeatureId, updates as Partial<CourseLandmarkFeature['properties']>);
+    } else if (featureHoleId) {
+      updateFeature(course.id, featureHoleId, selectedFeatureId, updates as Partial<DiscGolfFeature['properties']>);
+    }
   };
 
   const handleDelete = () => {
     saveSnapshot(course.id);
-    deleteFeature(course.id, featureHoleId, selectedFeatureId);
+    if (isTerrainFeature) {
+      deleteTerrainFeature(course.id, selectedFeatureId);
+    } else if (isPathFeature) {
+      deletePathFeature(course.id, selectedFeatureId);
+    } else if (isCourseLandmark) {
+      deleteLandmarkFeature(course.id, selectedFeatureId);
+    } else if (featureHoleId) {
+      deleteFeature(course.id, featureHoleId, selectedFeatureId);
+    }
     setSelectedFeature(null);
   };
 
@@ -139,7 +193,7 @@ export function FeatureProperties() {
                   onClick={() => handleUpdate({ color })}
                   className={`
                     w-8 h-8 rounded-lg border-2 transition-all
-                    ${feature.properties.color === color
+                    ${(feature.properties as TeeFeature['properties']).color === color
                       ? 'border-gray-900 scale-110'
                       : 'border-transparent hover:border-gray-400'
                     }
@@ -151,7 +205,7 @@ export function FeatureProperties() {
               <label className="w-8 h-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 cursor-pointer flex items-center justify-center overflow-hidden">
                 <input
                   type="color"
-                  value={feature.properties.color || course?.style.defaultTeeColor || '#dc2626'}
+                  value={(feature.properties as TeeFeature['properties']).color || course?.style.defaultTeeColor || '#dc2626'}
                   onChange={(e) => handleUpdate({ color: e.target.value })}
                   className="w-12 h-12 cursor-pointer"
                 />
@@ -349,7 +403,7 @@ export function FeatureProperties() {
                   onClick={() => handleUpdate({ color })}
                   className={`
                     w-8 h-8 rounded-lg border-2 transition-all
-                    ${feature.properties.color === color
+                    ${(feature.properties as FlightLineFeature['properties']).color === color
                       ? 'border-gray-900 scale-110'
                       : 'border-transparent hover:border-gray-400'
                     }
@@ -361,7 +415,7 @@ export function FeatureProperties() {
               <label className="w-8 h-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 cursor-pointer flex items-center justify-center overflow-hidden">
                 <input
                   type="color"
-                  value={feature.properties.color || course?.style.defaultFlightLineColor || '#3b82f6'}
+                  value={(feature.properties as FlightLineFeature['properties']).color || course?.style.defaultFlightLineColor || '#3b82f6'}
                   onChange={(e) => handleUpdate({ color: e.target.value })}
                   className="w-12 h-12 cursor-pointer"
                 />
@@ -507,15 +561,15 @@ export function FeatureProperties() {
         </div>
       )}
 
-      {/* Infrastructure/Terrain properties */}
-      {feature.properties.type === 'infrastructure' && (
+      {/* Terrain properties (course-level) */}
+      {feature.properties.type === 'terrain' && (
         <div className="space-y-3">
           {/* Current terrain type display */}
           <div className="bg-emerald-50 rounded-lg p-3 flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center"
               style={{
-                backgroundColor: TERRAIN_PATTERNS[(feature.properties as InfrastructureFeature['properties']).terrainType]?.defaultColors.primary || '#22c55e',
+                backgroundColor: TERRAIN_PATTERNS[(feature.properties as TerrainFeature['properties']).terrainType]?.defaultColors.primary || '#22c55e',
               }}
             >
               <Trees size={20} className="text-white" />
@@ -523,7 +577,7 @@ export function FeatureProperties() {
             <div>
               <div className="text-xs text-emerald-600 font-medium">{t('terrain.types', 'Terrain Type')}</div>
               <div className="text-lg font-bold text-emerald-700">
-                {getTerrainName(t, (feature.properties as InfrastructureFeature['properties']).terrainType)}
+                {getTerrainName(t, (feature.properties as TerrainFeature['properties']).terrainType)}
               </div>
             </div>
           </div>
@@ -536,7 +590,7 @@ export function FeatureProperties() {
             <div className="grid grid-cols-2 gap-1">
               {(Object.keys(TERRAIN_PATTERNS) as TerrainType[]).map((terrainType) => {
                 const pattern = TERRAIN_PATTERNS[terrainType];
-                const isActive = (feature.properties as InfrastructureFeature['properties']).terrainType === terrainType;
+                const isActive = (feature.properties as TerrainFeature['properties']).terrainType === terrainType;
                 return (
                   <button
                     key={terrainType}
@@ -560,14 +614,14 @@ export function FeatureProperties() {
           {/* Opacity slider */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('style.obOpacity', 'Opacity')} ({Math.round(((feature.properties as InfrastructureFeature['properties']).opacity ?? 0.9) * 100)}%)
+              {t('style.obOpacity', 'Opacity')} ({Math.round(((feature.properties as TerrainFeature['properties']).opacity ?? 0.9) * 100)}%)
             </label>
             <input
               type="range"
               min="0.1"
               max="1"
               step="0.05"
-              value={(feature.properties as InfrastructureFeature['properties']).opacity ?? 0.9}
+              value={(feature.properties as TerrainFeature['properties']).opacity ?? 0.9}
               onChange={(e) => handleUpdate({ opacity: parseFloat(e.target.value) })}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
             />
@@ -593,11 +647,11 @@ export function FeatureProperties() {
               <span className="text-xs text-gray-600 w-16">{t('terrain.fill')}</span>
               <input
                 type="color"
-                value={(feature.properties as InfrastructureFeature['properties']).customColors?.primary ||
-                  TERRAIN_PATTERNS[(feature.properties as InfrastructureFeature['properties']).terrainType]?.defaultColors.primary || '#22c55e'}
+                value={(feature.properties as TerrainFeature['properties']).customColors?.primary ||
+                  TERRAIN_PATTERNS[(feature.properties as TerrainFeature['properties']).terrainType]?.defaultColors.primary || '#22c55e'}
                 onChange={(e) => handleUpdate({
                   customColors: {
-                    ...(feature.properties as InfrastructureFeature['properties']).customColors,
+                    ...(feature.properties as TerrainFeature['properties']).customColors,
                     primary: e.target.value
                   }
                 })}
@@ -606,7 +660,7 @@ export function FeatureProperties() {
               <button
                 onClick={() => handleUpdate({
                   customColors: {
-                    ...(feature.properties as InfrastructureFeature['properties']).customColors,
+                    ...(feature.properties as TerrainFeature['properties']).customColors,
                     primary: undefined
                   }
                 })}
@@ -619,11 +673,11 @@ export function FeatureProperties() {
               <span className="text-xs text-gray-600 w-16">{t('terrain.border')}</span>
               <input
                 type="color"
-                value={(feature.properties as InfrastructureFeature['properties']).customColors?.secondary ||
-                  TERRAIN_PATTERNS[(feature.properties as InfrastructureFeature['properties']).terrainType]?.defaultColors.secondary || '#16a34a'}
+                value={(feature.properties as TerrainFeature['properties']).customColors?.secondary ||
+                  TERRAIN_PATTERNS[(feature.properties as TerrainFeature['properties']).terrainType]?.defaultColors.secondary || '#16a34a'}
                 onChange={(e) => handleUpdate({
                   customColors: {
-                    ...(feature.properties as InfrastructureFeature['properties']).customColors,
+                    ...(feature.properties as TerrainFeature['properties']).customColors,
                     secondary: e.target.value
                   }
                 })}
@@ -632,7 +686,7 @@ export function FeatureProperties() {
               <button
                 onClick={() => handleUpdate({
                   customColors: {
-                    ...(feature.properties as InfrastructureFeature['properties']).customColors,
+                    ...(feature.properties as TerrainFeature['properties']).customColors,
                     secondary: undefined
                   }
                 })}
@@ -641,6 +695,163 @@ export function FeatureProperties() {
                 {t('actions.reset')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Path properties (course-level) */}
+      {feature.properties.type === 'path' && (
+        <div className="space-y-3">
+          {/* Current path display */}
+          <div className="bg-stone-50 rounded-lg p-3 flex items-center gap-3">
+            <div
+              className="w-10 h-2 rounded-full"
+              style={{
+                backgroundColor: (feature.properties as PathFeature['properties']).color || '#a8a29e',
+              }}
+            />
+            <div>
+              <div className="text-xs text-stone-600 font-medium">{t('features.path', 'Path')}</div>
+              <div className="text-sm font-medium text-stone-700">
+                {(feature.properties as PathFeature['properties']).label || t('features.path', 'Path')}
+              </div>
+            </div>
+          </div>
+
+          {/* Color picker */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {t('style.lineColor', 'Line Color')}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={(feature.properties as PathFeature['properties']).color || '#a8a29e'}
+                onChange={(e) => handleUpdate({ color: e.target.value })}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+              />
+              <span className="text-xs text-gray-500">
+                {(feature.properties as PathFeature['properties']).color || '#a8a29e'}
+              </span>
+            </div>
+          </div>
+
+          {/* Stroke width slider */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {t('path.strokeWidth', 'Line Width')} ({(feature.properties as PathFeature['properties']).strokeWidth || 4}px)
+            </label>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              step="1"
+              value={(feature.properties as PathFeature['properties']).strokeWidth || 4}
+              onChange={(e) => handleUpdate({ strokeWidth: parseInt(e.target.value) })}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-stone-500"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>1px</span>
+              <span>10px</span>
+              <span>20px</span>
+            </div>
+          </div>
+
+          {/* Opacity slider */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {t('style.obOpacity', 'Opacity')} ({Math.round(((feature.properties as PathFeature['properties']).opacity ?? 1) * 100)}%)
+            </label>
+            <input
+              type="range"
+              min="0.1"
+              max="1"
+              step="0.05"
+              value={(feature.properties as PathFeature['properties']).opacity ?? 1}
+              onChange={(e) => handleUpdate({ opacity: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-stone-500"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>10%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course-level Landmark properties */}
+      {feature.properties.type === 'courseLandmark' && (
+        <div className="space-y-3">
+          {/* Current landmark display */}
+          <div className="bg-amber-50 rounded-lg p-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-2xl">
+              {LANDMARK_DEFINITIONS[(feature.properties as CourseLandmarkFeature['properties']).landmarkType]?.icon || '📍'}
+            </div>
+            <div>
+              <div className="text-xs text-amber-600 font-medium">{t('landmarks.title', 'Landmark')}</div>
+              <div className="text-lg font-bold text-amber-700">
+                {getLandmarkName(t, (feature.properties as CourseLandmarkFeature['properties']).landmarkType)}
+              </div>
+            </div>
+          </div>
+
+          {/* Landmark type selector */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              {t('landmarks.changeType', 'Change Landmark Type')}
+            </label>
+            {LANDMARK_CATEGORIES.map((category) => (
+              <div key={category.id} className="mb-2">
+                <div className="text-xs text-gray-500 mb-1">{getLandmarkCategoryName(t, category.id)}</div>
+                <div className="flex flex-wrap gap-1">
+                  {getLandmarksByCategory(category.id).map((landmarkType) => {
+                    const def = LANDMARK_DEFINITIONS[landmarkType];
+                    const isActive = (feature.properties as CourseLandmarkFeature['properties']).landmarkType === landmarkType;
+                    return (
+                      <button
+                        key={landmarkType}
+                        onClick={() => handleUpdate({ landmarkType, label: getLandmarkName(t, landmarkType) })}
+                        className={`
+                          px-2 py-1 rounded-lg text-xs transition-colors flex items-center gap-1
+                          ${isActive ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-500' : 'hover:bg-gray-100 text-gray-700'}
+                        `}
+                        title={getLandmarkName(t, landmarkType)}
+                      >
+                        <span>{def?.icon || '📍'}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Size control */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {t('landmarks.size', 'Size')} ({((feature.properties as CourseLandmarkFeature['properties']).size ?? 1).toFixed(1)}x)
+            </label>
+            <input
+              type="range"
+              min="0.5"
+              max="3"
+              step="0.1"
+              value={(feature.properties as CourseLandmarkFeature['properties']).size ?? 1}
+              onChange={(e) => handleUpdate({ size: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+            />
+          </div>
+
+          {/* Rotation control */}
+          <div className="border-t border-gray-200 pt-3">
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              {t('landmarks.rotation', 'Rotation')}
+            </label>
+            <RotationKnob
+              value={(feature.properties as CourseLandmarkFeature['properties']).rotation ?? 0}
+              onChange={(rotation) => handleUpdate({ rotation })}
+            />
           </div>
         </div>
       )}

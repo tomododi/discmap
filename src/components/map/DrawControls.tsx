@@ -3,7 +3,7 @@ import type { MapRef } from 'react-map-gl/maplibre';
 import type { IControl } from 'maplibre-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useCourseStore, useEditorStore, useMapStore } from '../../stores';
-import type { DiscGolfFeature, TeeProperties, BasketProperties, DropzoneProperties, DropzoneAreaProperties, MandatoryProperties, FlightLineProperties, OBZoneProperties, OBLineProperties, FairwayProperties, AnnotationProperties, InfrastructureProperties, LandmarkProperties } from '../../types/course';
+import type { DiscGolfFeature, TeeProperties, BasketProperties, DropzoneProperties, DropzoneAreaProperties, MandatoryProperties, FlightLineProperties, OBZoneProperties, OBLineProperties, FairwayProperties, AnnotationProperties, TerrainFeature, TerrainFeatureProperties, PathFeature, PathFeatureProperties, CourseLandmarkFeature, CourseLandmarkProperties } from '../../types/course';
 import { DEFAULT_TEE_COLORS } from '../../types/course';
 import type { DrawMode } from '../../types/editor';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
@@ -24,6 +24,9 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
   const setDrawMode = useEditorStore((s) => s.setDrawMode);
   const setSelectedFeature = useEditorStore((s) => s.setSelectedFeature);
   const addFeature = useCourseStore((s) => s.addFeature);
+  const addTerrainFeature = useCourseStore((s) => s.addTerrainFeature);
+  const addPathFeature = useCourseStore((s) => s.addPathFeature);
+  const addLandmarkFeature = useCourseStore((s) => s.addLandmarkFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
   const courses = useCourseStore((s) => s.courses);
 
@@ -123,6 +126,51 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     return course?.style?.defaultFlightLineColor || '#3b82f6';
   };
 
+  // Create terrain feature properties (course-level)
+  const createTerrainFeatureProperties = (): TerrainFeatureProperties | null => {
+    const now = new Date().toISOString();
+    const terrainPattern = TERRAIN_PATTERNS[activeTerrainType];
+    return {
+      id: crypto.randomUUID(),
+      type: 'terrain',
+      terrainType: activeTerrainType,
+      label: terrainPattern.name,
+      createdAt: now,
+      updatedAt: now,
+    };
+  };
+
+  // Create path feature properties (course-level)
+  const createPathFeatureProperties = (): PathFeatureProperties => {
+    const now = new Date().toISOString();
+    return {
+      id: crypto.randomUUID(),
+      type: 'path',
+      label: 'Path',
+      color: '#a8a29e', // Default path color
+      strokeWidth: 4,
+      opacity: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+  };
+
+  // Create course-level landmark properties
+  const createCourseLandmarkProperties = (): CourseLandmarkProperties => {
+    const now = new Date().toISOString();
+    const landmarkDef = LANDMARK_DEFINITIONS[activeLandmarkType];
+    return {
+      id: crypto.randomUUID(),
+      type: 'courseLandmark',
+      landmarkType: activeLandmarkType,
+      label: landmarkDef.name,
+      size: 1,
+      rotation: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+  };
+
   // Create feature from draw mode
   const createFeatureProperties = (drawMode: DrawMode): Partial<DiscGolfFeature['properties']> | null => {
     if (!activeHoleId) return null;
@@ -201,26 +249,15 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
           type: 'annotation',
           text: 'New annotation',
         } as AnnotationProperties;
-      case 'infrastructure': {
-        const terrainPattern = TERRAIN_PATTERNS[activeTerrainType];
-        return {
-          ...baseProps,
-          type: 'infrastructure',
-          terrainType: activeTerrainType,
-          label: terrainPattern.name,
-        } as InfrastructureProperties;
-      }
-      case 'landmark': {
-        const landmarkDef = LANDMARK_DEFINITIONS[activeLandmarkType];
-        return {
-          ...baseProps,
-          type: 'landmark',
-          landmarkType: activeLandmarkType,
-          label: landmarkDef.name,
-          size: 1,
-          rotation: 0,
-        } as LandmarkProperties;
-      }
+      case 'infrastructure':
+        // Terrain features are handled separately (course-level)
+        return null;
+      case 'path':
+        // Path features are handled separately (course-level)
+        return null;
+      case 'landmark':
+        // Landmark features are handled separately (course-level)
+        return null;
       default:
         return null;
     }
@@ -250,6 +287,7 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
         draw.changeMode('simple_select');
         break;
       case 'obLine':
+      case 'path':
         draw.changeMode('draw_line_string');
         break;
       case 'obZone':
@@ -268,16 +306,95 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     const map = mapRef.current.getMap();
 
     const handleCreate = (e: { features: GeoJSON.Feature[] }) => {
-      if (!activeCourseId || !activeHoleId) return;
+      if (!activeCourseId) return;
 
       const feature = e.features[0];
       if (!feature) return;
 
-      const properties = createFeatureProperties(drawMode);
-      if (!properties) return;
-
       // Save snapshot for undo
       saveSnapshot(activeCourseId);
+
+      // Handle terrain features separately (course-level, not hole-level)
+      if (drawMode === 'infrastructure') {
+        const terrainProps = createTerrainFeatureProperties();
+        if (!terrainProps) return;
+
+        const terrainFeature: TerrainFeature = {
+          type: 'Feature',
+          geometry: feature.geometry as GeoJSON.Polygon,
+          properties: terrainProps,
+        };
+
+        addTerrainFeature(activeCourseId, terrainFeature);
+
+        // Delete the drawn feature (we're storing it in our own state)
+        if (drawRef.current && feature.id) {
+          drawRef.current.delete(feature.id as string);
+        }
+
+        // Select the newly created terrain feature
+        setSelectedFeature(terrainProps.id);
+
+        // Reset to select mode
+        setDrawMode('select');
+        return;
+      }
+
+      // Handle path features separately (course-level, not hole-level)
+      if (drawMode === 'path') {
+        const pathProps = createPathFeatureProperties();
+
+        const pathFeature: PathFeature = {
+          type: 'Feature',
+          geometry: feature.geometry as GeoJSON.LineString,
+          properties: pathProps,
+        };
+
+        addPathFeature(activeCourseId, pathFeature);
+
+        // Delete the drawn feature (we're storing it in our own state)
+        if (drawRef.current && feature.id) {
+          drawRef.current.delete(feature.id as string);
+        }
+
+        // Select the newly created path feature
+        setSelectedFeature(pathProps.id);
+
+        // Reset to select mode
+        setDrawMode('select');
+        return;
+      }
+
+      // Handle landmark features separately (course-level, not hole-level)
+      if (drawMode === 'landmark') {
+        const landmarkProps = createCourseLandmarkProperties();
+
+        const landmarkFeature: CourseLandmarkFeature = {
+          type: 'Feature',
+          geometry: feature.geometry as GeoJSON.Point,
+          properties: landmarkProps,
+        };
+
+        addLandmarkFeature(activeCourseId, landmarkFeature);
+
+        // Delete the drawn feature (we're storing it in our own state)
+        if (drawRef.current && feature.id) {
+          drawRef.current.delete(feature.id as string);
+        }
+
+        // Select the newly created landmark feature
+        setSelectedFeature(landmarkProps.id);
+
+        // Reset to select mode
+        setDrawMode('select');
+        return;
+      }
+
+      // Handle hole-level features
+      if (!activeHoleId) return;
+
+      const properties = createFeatureProperties(drawMode);
+      if (!properties) return;
 
       // Create the disc golf feature
       const discGolfFeature: DiscGolfFeature = {
@@ -322,7 +439,13 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     activeTerrainType,
     activeLandmarkType,
     createFeatureProperties,
+    createTerrainFeatureProperties,
+    createPathFeatureProperties,
+    createCourseLandmarkProperties,
     addFeature,
+    addTerrainFeature,
+    addPathFeature,
+    addLandmarkFeature,
     saveSnapshot,
     setDrawMode,
     setSelectedFeature,

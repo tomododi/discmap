@@ -10,7 +10,6 @@ const TERRAIN_TRANSLATION_KEYS: Record<TerrainType, string> = {
   forest: 'terrain.forest',
   water: 'terrain.waterPond',
   sand: 'terrain.sand',
-  path: 'terrain.path',
   concrete: 'terrain.concrete',
   gravel: 'terrain.gravel',
   marsh: 'terrain.marsh',

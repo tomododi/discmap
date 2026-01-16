@@ -19,6 +19,7 @@ import {
   Trees,
   ChevronDown,
   MapPin,
+  Route,
 } from 'lucide-react';
 import { useEditorStore, useCourseStore } from '../../stores';
 import type { DrawMode } from '../../types/editor';
@@ -104,6 +105,7 @@ export function Toolbar() {
     { mode: 'mandatory', icon: <ArrowRight size={20} />, labelKey: 'toolbar.placeMandatory', descriptionKey: 'toolbarDesc.mandatory' },
     { mode: 'annotation', icon: <Type size={20} />, labelKey: 'toolbar.placeAnnotation', descriptionKey: 'toolbarDesc.annotation' },
     { mode: 'infrastructure', icon: <Trees size={20} />, labelKey: 'toolbar.drawTerrain', descriptionKey: 'toolbarDesc.infrastructure' },
+    { mode: 'path', icon: <Route size={20} />, labelKey: 'toolbar.drawPath', descriptionKey: 'toolbarDesc.path' },
   ];
 
   const handleTerrainSelect = (terrainType: TerrainType) => {

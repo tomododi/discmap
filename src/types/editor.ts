@@ -2,7 +2,7 @@ import type { Course } from './course';
 import type { TerrainType } from './terrain';
 import type { LandmarkType } from './landmarks';
 
-export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'landmark';
+export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'path' | 'landmark';
 
 export interface LayerVisibility {
   tees: boolean;
@@ -16,6 +16,7 @@ export interface LayerVisibility {
   mandatories: boolean;
   annotations: boolean;
   infrastructure: boolean;
+  paths: boolean;
   landmarks: boolean;
 }
 
@@ -57,6 +58,7 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
   mandatories: true,
   annotations: true,
   infrastructure: true,
+  paths: true,
   landmarks: true,
 };
 

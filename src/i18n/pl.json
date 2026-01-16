@@ -51,8 +51,10 @@
     "mandatory": "Mando",
     "annotation": "Adnotacja",
     "infrastructure": "Teren",
+    "terrain": "Teren",
     "landmark": "Punkt Orientacyjny",
-    "obLine": "Linia OB"
+    "obLine": "Linia OB",
+    "path": "Ścieżka"
   },
   "teePosition": {
     "pro": "Pro",
@@ -102,6 +104,7 @@
     "placeMandatory": "Mando",
     "placeAnnotation": "Adnotacja",
     "drawTerrain": "Teren",
+    "drawPath": "Ścieżka",
     "undo": "Cofnij",
     "redo": "Ponów",
     "export": "Eksportuj"
@@ -120,7 +123,8 @@
     "obLine": "Narysuj linię OB. Zielona strona to fairway, czerwona to OB. Podwójne kliknięcie kończy.",
     "mandatory": "Kliknij, aby postawić mando. Przewiń na nim, aby obrócić kierunek strzałki.",
     "annotation": "Kliknij, aby dodać adnotację tekstową. Edytuj tekst i styl w panelu właściwości.",
-    "infrastructure": "Rysuj strefy terenu (las, woda, ścieżki itp.). Wybierz typ z listy, narysuj wielokąt. Podwójne kliknięcie kończy."
+    "infrastructure": "Rysuj strefy terenu (las, woda itp.). Wybierz typ z listy, narysuj wielokąt. Podwójne kliknięcie kończy.",
+    "path": "Rysuj linię ścieżki. Kliknij, aby dodać punkty, podwójne kliknięcie kończy. Ustaw grubość linii we właściwościach."
   },
   "editor": {
     "courseInfo": "Info o Polu",
@@ -166,7 +170,8 @@
     "dropzoneAreas": "Obszary OB",
     "mandatories": "Manda",
     "landmarks": "Punkty Orientacyjne",
-    "annotations": "Adnotacje"
+    "annotations": "Adnotacje",
+    "paths": "Ścieżki"
   },
   "file": {
     "menu": "Plik",
@@ -273,6 +278,12 @@
     "outside": "Na zewnątrz",
     "hint": "Zielony = Fairway, Czerwony = OB"
   },
+  "path": {
+    "strokeWidth": "Grubość Linii",
+    "color": "Kolor Ścieżki",
+    "nodeCount": "{{count}} węzłów",
+    "editHint": "Przeciągnij węzły, aby dostosować. Kliknij +, aby dodać węzły. Podwójne kliknięcie usuwa."
+  },
   "terrain": {
     "theme": "Motyw Mapy",
     "types": "Typ Terenu",
@@ -309,7 +320,6 @@
     "forest": "Las / Drzewa",
     "waterPond": "Woda / Staw",
     "sand": "Piasek / Bunker",
-    "path": "Ścieżka",
     "concrete": "Beton / Asfalt",
     "gravel": "Żwir",
     "marsh": "Bagno / Mokradła",

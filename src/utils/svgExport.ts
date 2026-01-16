@@ -1,5 +1,5 @@
 import { bbox } from '@turf/turf';
-import type { Course, Hole, DiscGolfFeature, CourseStyle, TeeProperties, FlightLineProperties, DropzoneProperties, InfrastructureProperties, LandmarkProperties, OBLineProperties, DropzoneAreaProperties } from '../types/course';
+import type { Course, Hole, DiscGolfFeature, CourseStyle, TeeProperties, FlightLineProperties, DropzoneProperties, LandmarkProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature } from '../types/course';
 import type { ExportConfig } from '../types/export';
 import { TERRAIN_PATTERNS, getTerrainColors } from '../types/terrain';
 import { generateTerrainPattern, generateCompassRose, generateScaleBar, resetPatternIds } from './svgPatterns';
@@ -742,11 +742,10 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     svg += `<rect width="${width}" height="${height}" fill="#f8fafc" />`;
   }
 
-  // Infrastructure terrain features (on top of default terrain)
-  if (includeInfrastructure) {
-    const infrastructure = allFeatures.filter((f) => f.properties.type === 'infrastructure');
-    infrastructure.forEach((f) => {
-      const props = f.properties as InfrastructureProperties;
+  // Course-level terrain features (on top of default terrain)
+  if (includeInfrastructure && course.terrainFeatures) {
+    course.terrainFeatures.forEach((f: TerrainFeature) => {
+      const props = f.properties as TerrainFeatureProperties;
       const colors = getTerrainColors(props.terrainType, props.customColors);
 
       // Generate pattern if not already created
@@ -775,6 +774,20 @@ export function generateCourseSVG(options: SVGExportOptions): string {
         const points = polygonCoordsToSVG(coords, viewport);
         svg += `<polygon points="${points}" fill="url(#${patternId})" opacity="${props.opacity ?? 0.9}" />`;
       }
+    });
+  }
+
+  // Course-level path features (line features with stroke width)
+  if (course.pathFeatures && course.pathFeatures.length > 0) {
+    course.pathFeatures.forEach((f: PathFeature) => {
+      const props = f.properties;
+      const coords = (f.geometry as { coordinates: number[][] }).coordinates;
+      const path = lineStringToSVG(coords, viewport);
+      const color = props.color || '#a8a29e';
+      const strokeWidth = props.strokeWidth || 4;
+      const opacity = props.opacity ?? 1;
+
+      svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round" />`;
     });
   }
 

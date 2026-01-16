@@ -7,7 +7,6 @@ export type TerrainType =
   | 'forest'
   | 'water'
   | 'sand'
-  | 'path'
   | 'concrete'
   | 'gravel'
   | 'marsh'
@@ -74,16 +73,6 @@ export const TERRAIN_PATTERNS: Record<TerrainType, TerrainPattern> = {
       primary: '#fcd34d',
       secondary: '#fbbf24',
       accent: '#fef3c7',
-    },
-  },
-  path: {
-    id: 'path',
-    name: 'Walking Path',
-    category: 'surface',
-    defaultColors: {
-      primary: '#d6d3d1',
-      secondary: '#a8a29e',
-      accent: '#f5f5f4',
     },
   },
   concrete: {
@@ -346,7 +335,6 @@ export const TERRAIN_THEMES: TerrainTheme[] = [
       grass: { primary: '#aed581', secondary: '#9ccc65', accent: '#c5e1a5' },
       forest: { primary: '#6b8e23', secondary: '#556b2f', accent: '#8fbc8f' },
       water: { primary: '#87ceeb', secondary: '#6bb3d9', accent: '#b0e0e6' },
-      path: { primary: '#d7ccc8', secondary: '#bcaaa4' },
     },
   },
 ];

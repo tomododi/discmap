@@ -27,21 +27,67 @@ export function MapContainer() {
     setIsMapLoaded(true);
   }, [setIsMapLoaded]);
 
-  // Handle clicks on interactive layers (flight lines, OB zones, fairways)
+  // Handle clicks on interactive layers (flight lines, OB zones, fairways, infrastructure)
   // Also deselects when clicking on empty space
   const handleClick = useCallback(
     (evt: MapLayerMouseEvent) => {
+      const map = mapRef.current?.getMap();
       const features = evt.features;
+
+      // Check if click was on a React marker/button element (vertex handles, add node buttons, etc.)
+      // These elements handle their own selection, so we shouldn't deselect here
+      const target = evt.originalEvent.target as HTMLElement;
+      if (target && (
+        target.closest('button') ||
+        target.closest('[data-marker]') ||
+        target.classList.contains('maplibregl-marker') ||
+        target.closest('.maplibregl-marker')
+      )) {
+        return; // Let the React onClick handler deal with this
+      }
+
+      // First check if we clicked on a standard interactive layer
       if (features && features.length > 0) {
         const clickedFeature = features[0];
         const featureId = clickedFeature.properties?.id;
         if (featureId) {
           setSelectedFeature(featureId);
+          return;
         }
-      } else {
-        // Clicked on empty space - deselect
-        setSelectedFeature(null);
       }
+
+      // If no interactive feature, check for course-level features with dynamic IDs
+      if (map) {
+        const point = evt.point;
+        const allFeatures = map.queryRenderedFeatures(point);
+
+        // Check for terrain layers
+        const terrainFeature = allFeatures.find(f =>
+          f.layer.id.startsWith('terrain-fill-')
+        );
+        if (terrainFeature) {
+          const featureId = terrainFeature.properties?.id;
+          if (featureId) {
+            setSelectedFeature(featureId);
+            return;
+          }
+        }
+
+        // Check for path layers
+        const pathFeature = allFeatures.find(f =>
+          f.layer.id.startsWith('path-line-')
+        );
+        if (pathFeature) {
+          const featureId = pathFeature.properties?.id;
+          if (featureId) {
+            setSelectedFeature(featureId);
+            return;
+          }
+        }
+      }
+
+      // Clicked on empty space - deselect
+      setSelectedFeature(null);
     },
     [setSelectedFeature]
   );
