@@ -1,7 +1,8 @@
 import type { Course } from './course';
 import type { TerrainType } from './terrain';
+import type { TreeType } from './trees';
 
-export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'path';
+export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'path' | 'tree';
 
 export interface LayerVisibility {
   tees: boolean;
@@ -16,6 +17,7 @@ export interface LayerVisibility {
   annotations: boolean;
   infrastructure: boolean;
   paths: boolean;
+  trees: boolean;
 }
 
 export interface PendingFlightLine {
@@ -23,6 +25,12 @@ export interface PendingFlightLine {
   startType: 'tee' | 'dropzone';
   startCoords: [number, number];
   startColor: string;
+}
+
+export interface TreeBrushSettings {
+  density: number;      // Spacing between trees in pixels (20-100)
+  sizeVariation: number; // Random size variation (0-0.5)
+  enabled: boolean;     // Whether brush mode is active
 }
 
 export interface EditorState {
@@ -36,6 +44,8 @@ export interface EditorState {
   sidebarCollapsed: boolean;
   pendingFlightLine: PendingFlightLine | null;
   activeTerrainType: TerrainType;
+  activeTreeType: TreeType;
+  treeBrushSettings: TreeBrushSettings;
 }
 
 export interface CourseSnapshot {
@@ -57,6 +67,13 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
   annotations: true,
   infrastructure: true,
   paths: true,
+  trees: true,
+};
+
+export const DEFAULT_TREE_BRUSH_SETTINGS: TreeBrushSettings = {
+  density: 50,
+  sizeVariation: 0.3,
+  enabled: false,
 };
 
 export const DEFAULT_EDITOR_STATE: EditorState = {
@@ -70,4 +87,6 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
   sidebarCollapsed: false,
   pendingFlightLine: null,
   activeTerrainType: 'forest',
+  activeTreeType: 'oak',
+  treeBrushSettings: { ...DEFAULT_TREE_BRUSH_SETTINGS },
 };

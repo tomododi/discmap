@@ -1,12 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import type { MapRef } from 'react-map-gl/maplibre';
-import type { IControl } from 'maplibre-gl';
+import type { IControl, MapMouseEvent } from 'maplibre-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useCourseStore, useEditorStore, useMapStore } from '../../stores';
 import type { DiscGolfFeature, TeeProperties, BasketProperties, DropzoneProperties, DropzoneAreaProperties, MandatoryProperties, FlightLineProperties, OBZoneProperties, OBLineProperties, FairwayProperties, AnnotationProperties, TerrainFeature, TerrainFeatureProperties, PathFeature, PathFeatureProperties } from '../../types/course';
 import { DEFAULT_TEE_COLORS } from '../../types/course';
 import type { DrawMode } from '../../types/editor';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
+import type { TreeFeature, TreeFeatureProperties } from '../../types/trees';
+import { TREE_PATTERNS } from '../../types/trees';
 
 interface DrawControlsProps {
   mapRef: React.RefObject<MapRef | null>;
@@ -19,11 +21,14 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const activeHoleId = useEditorStore((s) => s.activeHoleId);
   const activeTerrainType = useEditorStore((s) => s.activeTerrainType);
+  const activeTreeType = useEditorStore((s) => s.activeTreeType);
+  const treeBrushSettings = useEditorStore((s) => s.treeBrushSettings);
   const setDrawMode = useEditorStore((s) => s.setDrawMode);
   const setSelectedFeature = useEditorStore((s) => s.setSelectedFeature);
   const addFeature = useCourseStore((s) => s.addFeature);
   const addTerrainFeature = useCourseStore((s) => s.addTerrainFeature);
   const addPathFeature = useCourseStore((s) => s.addPathFeature);
+  const addTreeFeature = useCourseStore((s) => s.addTreeFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
   const courses = useCourseStore((s) => s.courses);
 
@@ -152,6 +157,23 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     };
   };
 
+  // Create tree feature properties (course-level)
+  const createTreeFeatureProperties = useCallback((sizeOverride?: number, rotationOverride?: number): TreeFeatureProperties => {
+    const now = new Date().toISOString();
+    const treePattern = TREE_PATTERNS[activeTreeType];
+    return {
+      id: crypto.randomUUID(),
+      type: 'tree',
+      treeType: activeTreeType,
+      size: sizeOverride ?? 1, // Default scale multiplier
+      rotation: rotationOverride ?? 0, // Default rotation
+      opacity: 1, // Default opacity
+      label: treePattern.name,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }, [activeTreeType]);
+
   // Create feature from draw mode
   const createFeatureProperties = (drawMode: DrawMode): Partial<DiscGolfFeature['properties']> | null => {
     if (!activeHoleId) return null;
@@ -236,6 +258,9 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
       case 'path':
         // Path features are handled separately (course-level)
         return null;
+      case 'tree':
+        // Tree features are handled separately (course-level)
+        return null;
       default:
         return null;
     }
@@ -256,6 +281,7 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
       case 'dropzone':
       case 'mandatory':
       case 'annotation':
+      case 'tree':
         draw.changeMode('draw_point');
         break;
       case 'flightLine':
@@ -342,6 +368,31 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
         return;
       }
 
+      // Handle tree features separately (course-level, not hole-level)
+      if (drawMode === 'tree') {
+        const treeProps = createTreeFeatureProperties();
+
+        const treeFeature: TreeFeature = {
+          type: 'Feature',
+          geometry: feature.geometry as GeoJSON.Point,
+          properties: treeProps,
+        };
+
+        addTreeFeature(activeCourseId, treeFeature);
+
+        // Delete the drawn feature (we're storing it in our own state)
+        if (drawRef.current && feature.id) {
+          drawRef.current.delete(feature.id as string);
+        }
+
+        // Select the newly created tree feature
+        setSelectedFeature(treeProps.id);
+
+        // Reset to select mode
+        setDrawMode('select');
+        return;
+      }
+
       // Handle hole-level features
       if (!activeHoleId) return;
 
@@ -389,15 +440,118 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     activeCourseId,
     activeHoleId,
     activeTerrainType,
+    activeTreeType,
     createFeatureProperties,
     createTerrainFeatureProperties,
     createPathFeatureProperties,
+    createTreeFeatureProperties,
     addFeature,
     addTerrainFeature,
     addPathFeature,
+    addTreeFeature,
     saveSnapshot,
     setDrawMode,
     setSelectedFeature,
+  ]);
+
+  // Handle tree brush painting mode
+  useEffect(() => {
+    if (!mapRef.current || !isMapLoaded) return;
+    if (drawMode !== 'tree' || !treeBrushSettings.enabled) return;
+    if (!activeCourseId) return;
+
+    const map = mapRef.current.getMap();
+    let isPainting = false;
+    let lastPlacementPoint: { x: number; y: number } | null = null;
+
+    const placeTreeAtPoint = (lngLat: { lng: number; lat: number }) => {
+      // Random size variation
+      const sizeVariation = treeBrushSettings.sizeVariation;
+      const size = 1 + (Math.random() - 0.5) * 2 * sizeVariation;
+
+      // Random rotation
+      const rotation = Math.floor(Math.random() * 360);
+
+      const treeProps = createTreeFeatureProperties(size, rotation);
+
+      const treeFeature: TreeFeature = {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [lngLat.lng, lngLat.lat],
+        },
+        properties: treeProps,
+      };
+
+      addTreeFeature(activeCourseId, treeFeature);
+    };
+
+    const handleMouseDown = (e: MapMouseEvent) => {
+      if (e.originalEvent.button !== 0) return; // Only left mouse button
+
+      isPainting = true;
+
+      // Save snapshot for undo on first placement
+      saveSnapshot(activeCourseId);
+
+      // Place first tree
+      placeTreeAtPoint(e.lngLat);
+      lastPlacementPoint = { x: e.point.x, y: e.point.y };
+
+      // Prevent default draw behavior
+      e.preventDefault();
+    };
+
+    const handleMouseMove = (e: MapMouseEvent) => {
+      if (!isPainting || !lastPlacementPoint) return;
+
+      // Calculate distance from last placement
+      const dx = e.point.x - lastPlacementPoint.x;
+      const dy = e.point.y - lastPlacementPoint.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Place tree if we've moved far enough (based on density setting)
+      if (distance >= treeBrushSettings.density) {
+        placeTreeAtPoint(e.lngLat);
+        lastPlacementPoint = { x: e.point.x, y: e.point.y };
+      }
+    };
+
+    const handleMouseUp = () => {
+      isPainting = false;
+      lastPlacementPoint = null;
+    };
+
+    // Disable mapbox-draw for tree mode when brush is enabled
+    if (drawRef.current) {
+      drawRef.current.changeMode('simple_select');
+    }
+
+    map.on('mousedown', handleMouseDown);
+    map.on('mousemove', handleMouseMove);
+    map.on('mouseup', handleMouseUp);
+    map.on('mouseleave', handleMouseUp);
+
+    // Change cursor to crosshair
+    map.getCanvas().style.cursor = 'crosshair';
+
+    return () => {
+      map.off('mousedown', handleMouseDown);
+      map.off('mousemove', handleMouseMove);
+      map.off('mouseup', handleMouseUp);
+      map.off('mouseleave', handleMouseUp);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [
+    mapRef,
+    isMapLoaded,
+    drawMode,
+    treeBrushSettings,
+    activeCourseId,
+    activeTreeType,
+    addTreeFeature,
+    saveSnapshot,
+    createTreeFeatureProperties,
   ]);
 
   return null;

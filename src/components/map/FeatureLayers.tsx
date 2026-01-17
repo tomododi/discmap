@@ -4,11 +4,13 @@ import type { MarkerDragEvent } from 'react-map-gl/maplibre';
 import { useCourseStore, useEditorStore, useMapStore } from '../../stores';
 import { useSettingsStore } from '../../stores/settingsStore';
 import type { TeeFeature, BasketFeature, DropzoneFeature, MandatoryFeature, FlightLineFeature, AnnotationFeature, FlightLineProperties, DiscGolfFeature, OBLineFeature, TerrainFeature, PathFeature } from '../../types/course';
+import type { TreeFeature } from '../../types/trees';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
 import { TeeMarker } from './markers/TeeMarker';
 import { BasketMarker } from './markers/BasketMarker';
 import { DropzoneMarker } from './markers/DropzoneMarker';
 import { MandatoryMarker } from './markers/MandatoryMarker';
+import { TreeMarker } from './markers/TreeMarker';
 import { calculateLineLength } from '../../utils/geo';
 
 export function FeatureLayers() {
@@ -29,6 +31,8 @@ export function FeatureLayers() {
   const updateFeature = useCourseStore((s) => s.updateFeature);
   const updateTerrainFeatureGeometry = useCourseStore((s) => s.updateTerrainFeatureGeometry);
   const updatePathFeatureGeometry = useCourseStore((s) => s.updatePathFeatureGeometry);
+  const updateTreeFeatureGeometry = useCourseStore((s) => s.updateTreeFeatureGeometry);
+  const updateTreeFeature = useCourseStore((s) => s.updateTreeFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
   const units = useSettingsStore((s) => s.units);
   const mapBearing = useMapStore((s) => s.viewState.bearing);
@@ -381,6 +385,27 @@ export function FeatureLayers() {
     [activeCourseId, course, updatePathFeatureGeometry, saveSnapshot]
   );
 
+  // Handler for dragging tree features (course-level)
+  const handleTreeDragEnd = useCallback(
+    (featureId: string, event: MarkerDragEvent) => {
+      if (!activeCourseId) return;
+      saveSnapshot(activeCourseId);
+      const newCoords: [number, number] = [event.lngLat.lng, event.lngLat.lat];
+      updateTreeFeatureGeometry(activeCourseId, featureId, newCoords);
+    },
+    [activeCourseId, updateTreeFeatureGeometry, saveSnapshot]
+  );
+
+  // Handler for rotating tree features (course-level)
+  const handleTreeRotate = useCallback(
+    (featureId: string, newRotation: number) => {
+      if (!activeCourseId) return;
+      saveSnapshot(activeCourseId);
+      updateTreeFeature(activeCourseId, featureId, { rotation: newRotation });
+    },
+    [activeCourseId, updateTreeFeature, saveSnapshot]
+  );
+
   // Handler for dragging line vertices (OB lines)
   const handleLineVertexDrag = useCallback(
     (featureId: string, holeId: string, vertexIndex: number, event: MarkerDragEvent) => {
@@ -528,6 +553,9 @@ export function FeatureLayers() {
 
   // Course-level path features (not tied to holes)
   const pathFeatures = (showLayers.paths && course.pathFeatures) ? course.pathFeatures : [] as PathFeature[];
+
+  // Course-level tree features (not tied to holes)
+  const treeFeatures = (showLayers.trees && course.treeFeatures) ? course.treeFeatures : [] as TreeFeature[];
 
   // Get color for a feature (uses feature's color or falls back to style default)
   const getFeatureColor = (feature: FlightLineFeature) => {
@@ -914,6 +942,39 @@ export function FeatureLayers() {
               );
             })}
           </>
+        );
+      })}
+
+      {/* Tree markers (before other point markers for proper z-order) */}
+      {treeFeatures.map((feature) => {
+        const coords: [number, number] = [feature.geometry.coordinates[0], feature.geometry.coordinates[1]];
+        const isSelected = selectedFeatureId === feature.properties.id;
+
+        return (
+          <Marker
+            key={feature.properties.id}
+            longitude={coords[0]}
+            latitude={coords[1]}
+            anchor="center"
+            rotationAlignment="viewport"
+            draggable
+            onDragEnd={(e) => handleTreeDragEnd(feature.properties.id, e)}
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              setSelectedFeature(feature.properties.id);
+            }}
+          >
+            <TreeMarker
+              treeType={feature.properties.treeType}
+              size={feature.properties.size}
+              rotation={feature.properties.rotation}
+              opacity={feature.properties.opacity}
+              selected={isSelected}
+              customColors={feature.properties.customColors}
+              mapBearing={mapBearing}
+              onRotate={(newRotation) => handleTreeRotate(feature.properties.id, newRotation)}
+            />
+          </Marker>
         );
       })}
 

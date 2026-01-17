@@ -2,7 +2,9 @@ import { bbox } from '@turf/turf';
 import type { Course, Hole, DiscGolfFeature, CourseStyle, TeeProperties, FlightLineProperties, DropzoneProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature } from '../types/course';
 import type { ExportConfig } from '../types/export';
 import { TERRAIN_PATTERNS, getTerrainColors } from '../types/terrain';
+import type { TreeFeature } from '../types/trees';
 import { generateTerrainPattern, generateCompassRose, generateScaleBar, resetPatternIds } from './svgPatterns';
+import { generateTreeSVG } from './treeSvg';
 
 // ============ COORDINATE TRANSFORMATION ============
 
@@ -797,6 +799,28 @@ export function generateCourseSVG(options: SVGExportOptions): string {
       const opacity = props.opacity ?? 1;
 
       svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round" />`;
+    });
+  }
+
+  // Course-level tree features (decorative trees)
+  if (course.treeFeatures && course.treeFeatures.length > 0) {
+    course.treeFeatures.forEach((f: TreeFeature) => {
+      const props = f.properties;
+      const coords = f.geometry.coordinates as [number, number];
+      const [x, y] = geoToSVG(coords, viewport);
+
+      // Generate tree SVG at this position
+      const treeSvg = generateTreeSVG(
+        x,
+        y,
+        props.treeType,
+        props.size ?? 1,
+        props.rotation ?? 0,
+        props.customColors,
+        props.opacity ?? 1,
+        densityMetrics.markerScale
+      );
+      svg += treeSvg;
     });
   }
 
@@ -1888,6 +1912,26 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
         const strokeWidth = props.strokeWidth || 4;
         const opacity = props.opacity ?? 1;
         svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round" />`;
+      });
+    }
+
+    // Course-level tree features
+    if (course.treeFeatures && course.treeFeatures.length > 0) {
+      course.treeFeatures.forEach((f: TreeFeature) => {
+        const props = f.properties;
+        const coords = f.geometry.coordinates as [number, number];
+        const [x, y] = geoToSVG(coords, mapViewport);
+        const treeSvg = generateTreeSVG(
+          x,
+          y,
+          props.treeType,
+          props.size ?? 1,
+          props.rotation ?? 0,
+          props.customColors,
+          props.opacity ?? 1,
+          0.8 // Fixed scale for individual hole pages
+        );
+        svg += treeSvg;
       });
     }
 

@@ -53,7 +53,8 @@
     "infrastructure": "Teren",
     "terrain": "Teren",
     "obLine": "Linia OB",
-    "path": "Ścieżka"
+    "path": "Ścieżka",
+    "tree": "Drzewo"
   },
   "teePosition": {
     "pro": "Pro",
@@ -104,6 +105,7 @@
     "placeAnnotation": "Adnotacja",
     "drawTerrain": "Teren",
     "drawPath": "Ścieżka",
+    "placeTree": "Drzewo",
     "undo": "Cofnij",
     "redo": "Ponów",
     "export": "Eksportuj"
@@ -123,7 +125,8 @@
     "mandatory": "Kliknij, aby postawić mando. Przewiń na nim, aby obrócić kierunek strzałki.",
     "annotation": "Kliknij, aby dodać adnotację tekstową. Edytuj tekst i styl w panelu właściwości.",
     "infrastructure": "Rysuj strefy terenu (las, woda itp.). Wybierz typ z listy, narysuj wielokąt. Podwójne kliknięcie kończy.",
-    "path": "Rysuj linię ścieżki. Kliknij, aby dodać punkty, podwójne kliknięcie kończy. Ustaw grubość linii we właściwościach."
+    "path": "Rysuj linię ścieżki. Kliknij, aby dodać punkty, podwójne kliknięcie kończy. Ustaw grubość linii we właściwościach.",
+    "tree": "Kliknij, aby postawić drzewo. Wybierz typ drzewa z listy. Przewiń na markerze, aby obrócić."
   },
   "editor": {
     "courseInfo": "Info o Polu",
@@ -170,7 +173,8 @@
     "dropzoneAreas": "Obszary OB",
     "mandatories": "Manda",
     "annotations": "Adnotacje",
-    "paths": "Ścieżki"
+    "paths": "Ścieżki",
+    "trees": "Drzewa"
   },
   "file": {
     "menu": "Plik",
@@ -294,6 +298,31 @@
     "color": "Kolor Ścieżki",
     "nodeCount": "{{count}} węzłów",
     "editHint": "Przeciągnij węzły, aby dostosować. Kliknij +, aby dodać węzły. Podwójne kliknięcie usuwa."
+  },
+  "tree": {
+    "types": "Wybierz Drzewo",
+    "oak": "Dąb",
+    "maple": "Klon",
+    "pine": "Sosna",
+    "spruce": "Świerk",
+    "birch": "Brzoza",
+    "size": "Rozmiar",
+    "rotation": "Obrót",
+    "scrollToRotate": "Przewiń na markerze, aby obrócić",
+    "customColors": "Własne Kolory",
+    "primary": "Podstawowy",
+    "secondary": "Drugorzędny",
+    "accent": "Akcent",
+    "changeType": "Zmień Typ Drzewa",
+    "brushMode": "Tryb Pędzla",
+    "density": "Zagęszczenie",
+    "dense": "Gęsto",
+    "sparse": "Rzadko",
+    "sizeVariation": "Zmienność Rozmiaru",
+    "categories": {
+      "deciduous": "Liściaste",
+      "conifer": "Iglaste"
+    }
   },
   "terrain": {
     "theme": "Motyw Mapy",

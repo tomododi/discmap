@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { Trash2, X, Trees } from 'lucide-react';
+import { Trash2, X, Trees, TreeDeciduous } from 'lucide-react';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
 import { calculateDistance, formatDistance, calculateLineLength } from '../../utils/geo';
 import type { DiscGolfFeature, TeeFeature, BasketFeature, DropzoneFeature, DropzoneAreaFeature, FlightLineFeature, AnnotationFeature, OBLineFeature, TerrainFeature, PathFeature } from '../../types/course';
 import { DEFAULT_TEE_COLORS } from '../../types/course';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
+import { TREE_PATTERNS, type TreeType, type TreeFeature } from '../../types/trees';
 import { Button } from '../common/Button';
 import { RotationKnob } from '../common/RotationKnob';
-import { getTerrainName } from '../../utils/i18nHelpers';
+import { getTerrainName, getTreeName } from '../../utils/i18nHelpers';
 
 export function FeatureProperties() {
   const { t } = useTranslation();
@@ -23,6 +24,8 @@ export function FeatureProperties() {
   const deleteTerrainFeature = useCourseStore((s) => s.deleteTerrainFeature);
   const updatePathFeature = useCourseStore((s) => s.updatePathFeature);
   const deletePathFeature = useCourseStore((s) => s.deletePathFeature);
+  const updateTreeFeature = useCourseStore((s) => s.updateTreeFeature);
+  const deleteTreeFeature = useCourseStore((s) => s.deleteTreeFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
 
   if (!course || !selectedFeatureId) {
@@ -36,9 +39,10 @@ export function FeatureProperties() {
 
   // Find feature in active hole first, then search all holes, then course-level features
   let hole = activeHoleId ? course.holes.find((h) => h.id === activeHoleId) : null;
-  let feature: DiscGolfFeature | TerrainFeature | PathFeature | undefined = hole?.features.find((f) => f.properties.id === selectedFeatureId);
+  let feature: DiscGolfFeature | TerrainFeature | PathFeature | TreeFeature | undefined = hole?.features.find((f) => f.properties.id === selectedFeatureId);
   let isTerrainFeature = false;
   let isPathFeature = false;
+  let isTreeFeature = false;
 
   // If not found in active hole, search all holes
   if (!feature) {
@@ -70,7 +74,16 @@ export function FeatureProperties() {
     }
   }
 
-  const isCourseLevel = isTerrainFeature || isPathFeature;
+  // If still not found, search course-level tree features
+  if (!feature && course.treeFeatures) {
+    const treeFound = course.treeFeatures.find((f) => f.properties.id === selectedFeatureId);
+    if (treeFound) {
+      feature = treeFound;
+      isTreeFeature = true;
+    }
+  }
+
+  const isCourseLevel = isTerrainFeature || isPathFeature || isTreeFeature;
 
   if (!feature || (!hole && !isCourseLevel)) {
     return (
@@ -82,12 +95,14 @@ export function FeatureProperties() {
 
   const featureHoleId = hole?.id;
 
-  const handleUpdate = (updates: Partial<DiscGolfFeature['properties']> | Partial<TerrainFeature['properties']> | Partial<PathFeature['properties']>) => {
+  const handleUpdate = (updates: Partial<DiscGolfFeature['properties']> | Partial<TerrainFeature['properties']> | Partial<PathFeature['properties']> | Partial<TreeFeature['properties']>) => {
     saveSnapshot(course.id);
     if (isTerrainFeature) {
       updateTerrainFeature(course.id, selectedFeatureId, updates as Partial<TerrainFeature['properties']>);
     } else if (isPathFeature) {
       updatePathFeature(course.id, selectedFeatureId, updates as Partial<PathFeature['properties']>);
+    } else if (isTreeFeature) {
+      updateTreeFeature(course.id, selectedFeatureId, updates as Partial<TreeFeature['properties']>);
     } else if (featureHoleId) {
       updateFeature(course.id, featureHoleId, selectedFeatureId, updates as Partial<DiscGolfFeature['properties']>);
     }
@@ -99,6 +114,8 @@ export function FeatureProperties() {
       deleteTerrainFeature(course.id, selectedFeatureId);
     } else if (isPathFeature) {
       deletePathFeature(course.id, selectedFeatureId);
+    } else if (isTreeFeature) {
+      deleteTreeFeature(course.id, selectedFeatureId);
     } else if (featureHoleId) {
       deleteFeature(course.id, featureHoleId, selectedFeatureId);
     }
@@ -758,6 +775,201 @@ export function FeatureProperties() {
               <span>10%</span>
               <span>50%</span>
               <span>100%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tree properties (course-level) */}
+      {feature.properties.type === 'tree' && (
+        <div className="space-y-3">
+          {/* Current tree type display */}
+          <div className="bg-green-50 rounded-lg p-3 flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: TREE_PATTERNS[(feature.properties as TreeFeature['properties']).treeType]?.defaultColors.primary || '#228b22',
+              }}
+            >
+              <TreeDeciduous size={20} className="text-white" />
+            </div>
+            <div>
+              <div className="text-xs text-green-600 font-medium">{t('tree.types', 'Tree Type')}</div>
+              <div className="text-lg font-bold text-green-700">
+                {getTreeName(t, (feature.properties as TreeFeature['properties']).treeType)}
+              </div>
+            </div>
+          </div>
+
+          {/* Tree type selector */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              {t('tree.changeType', 'Change Tree Type')}
+            </label>
+            <div className="grid grid-cols-2 gap-1">
+              {(Object.keys(TREE_PATTERNS) as TreeType[]).map((treeType) => {
+                const pattern = TREE_PATTERNS[treeType];
+                const isActive = (feature.properties as TreeFeature['properties']).treeType === treeType;
+                return (
+                  <button
+                    key={treeType}
+                    onClick={() => handleUpdate({ treeType, label: getTreeName(t, treeType) })}
+                    className={`
+                      flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors
+                      ${isActive ? 'bg-green-100 text-green-800 ring-2 ring-green-500' : 'hover:bg-gray-100 text-gray-700'}
+                    `}
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: pattern.defaultColors.primary }}
+                    />
+                    <span className="text-xs truncate">{getTreeName(t, treeType)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Size slider */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {t('tree.size', 'Size')} ({((feature.properties as TreeFeature['properties']).size ?? 1).toFixed(1)}x)
+            </label>
+            <input
+              type="range"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value={(feature.properties as TreeFeature['properties']).size ?? 1}
+              onChange={(e) => handleUpdate({ size: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0.5x</span>
+              <span>1x</span>
+              <span>2x</span>
+            </div>
+          </div>
+
+          {/* Rotation control */}
+          <div className="border-t border-gray-200 pt-3">
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              {t('tree.rotation', 'Rotation')}
+            </label>
+            <div className="flex justify-center">
+              <RotationKnob
+                value={(feature.properties as TreeFeature['properties']).rotation ?? 0}
+                onChange={(rotation) => handleUpdate({ rotation })}
+                color={TREE_PATTERNS[(feature.properties as TreeFeature['properties']).treeType]?.defaultColors.primary || '#228b22'}
+                size={80}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2 text-center">{t('tree.scrollToRotate', 'Scroll on tree to rotate')}</p>
+          </div>
+
+          {/* Opacity slider */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {t('style.obOpacity', 'Opacity')} ({Math.round(((feature.properties as TreeFeature['properties']).opacity ?? 1) * 100)}%)
+            </label>
+            <input
+              type="range"
+              min="0.1"
+              max="1"
+              step="0.05"
+              value={(feature.properties as TreeFeature['properties']).opacity ?? 1}
+              onChange={(e) => handleUpdate({ opacity: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>10%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+          </div>
+
+          {/* Custom colors */}
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-gray-700">
+              {t('tree.customColors', 'Custom Colors')}
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 w-16">{t('tree.primary', 'Primary')}</span>
+              <input
+                type="color"
+                value={(feature.properties as TreeFeature['properties']).customColors?.primary ||
+                  TREE_PATTERNS[(feature.properties as TreeFeature['properties']).treeType]?.defaultColors.primary || '#228b22'}
+                onChange={(e) => handleUpdate({
+                  customColors: {
+                    ...(feature.properties as TreeFeature['properties']).customColors,
+                    primary: e.target.value
+                  }
+                })}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+              />
+              <button
+                onClick={() => handleUpdate({
+                  customColors: {
+                    ...(feature.properties as TreeFeature['properties']).customColors,
+                    primary: undefined
+                  }
+                })}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                {t('actions.reset')}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 w-16">{t('tree.secondary', 'Shadow')}</span>
+              <input
+                type="color"
+                value={(feature.properties as TreeFeature['properties']).customColors?.secondary ||
+                  TREE_PATTERNS[(feature.properties as TreeFeature['properties']).treeType]?.defaultColors.secondary || '#1a6b1a'}
+                onChange={(e) => handleUpdate({
+                  customColors: {
+                    ...(feature.properties as TreeFeature['properties']).customColors,
+                    secondary: e.target.value
+                  }
+                })}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+              />
+              <button
+                onClick={() => handleUpdate({
+                  customColors: {
+                    ...(feature.properties as TreeFeature['properties']).customColors,
+                    secondary: undefined
+                  }
+                })}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                {t('actions.reset')}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 w-16">{t('tree.accent', 'Accent')}</span>
+              <input
+                type="color"
+                value={(feature.properties as TreeFeature['properties']).customColors?.accent ||
+                  TREE_PATTERNS[(feature.properties as TreeFeature['properties']).treeType]?.defaultColors.accent || '#32cd32'}
+                onChange={(e) => handleUpdate({
+                  customColors: {
+                    ...(feature.properties as TreeFeature['properties']).customColors,
+                    accent: e.target.value
+                  }
+                })}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+              />
+              <button
+                onClick={() => handleUpdate({
+                  customColors: {
+                    ...(feature.properties as TreeFeature['properties']).customColors,
+                    accent: undefined
+                  }
+                })}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                {t('actions.reset')}
+              </button>
             </div>
           </div>
         </div>

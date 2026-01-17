@@ -1,5 +1,6 @@
 import type { Feature, Point, LineString, Polygon } from 'geojson';
 import type { TerrainType, MapBackgroundConfig } from './terrain';
+import type { TreeFeature } from './trees';
 
 // ============ CORE TYPES ============
 
@@ -248,6 +249,7 @@ export interface Course {
   website?: string;
   terrainFeatures: TerrainFeature[]; // Course-level terrain polygons (not tied to holes)
   pathFeatures: PathFeature[]; // Course-level path lines (not tied to holes)
+  treeFeatures: TreeFeature[]; // Course-level tree markers (not tied to holes)
   createdAt: string;
   updatedAt: string;
   version: number;
@@ -324,6 +326,7 @@ export function createEmptyCourse(name: string, coordinates: [number, number]): 
     layouts: [],
     terrainFeatures: [],
     pathFeatures: [],
+    treeFeatures: [],
     createdAt: now,
     updatedAt: now,
     version: 1,

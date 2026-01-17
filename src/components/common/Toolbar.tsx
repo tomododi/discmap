@@ -17,9 +17,11 @@ import {
   SquareDashedBottom,
   Minus,
   Trees,
+  TreeDeciduous,
   ChevronDown,
   MapPin,
   Route,
+  Paintbrush,
 } from 'lucide-react';
 import { useEditorStore, useCourseStore } from '../../stores';
 import type { DrawMode } from '../../types/editor';
@@ -27,7 +29,8 @@ import { ExportDialog } from '../export/ExportDialog';
 import { ImportDialog } from '../export/ImportDialog';
 import { downloadCourseJSON } from '../../utils/storage';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
-import { getTerrainName } from '../../utils/i18nHelpers';
+import { TREE_PATTERNS, type TreeType } from '../../types/trees';
+import { getTerrainName, getTreeName } from '../../utils/i18nHelpers';
 
 interface ToolConfig {
   mode: DrawMode;
@@ -69,13 +72,20 @@ export function Toolbar() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [hoveredTool, setHoveredTool] = useState<DrawMode | null>(null);
   const [terrainMenuOpen, setTerrainMenuOpen] = useState(false);
+  const [treeMenuOpen, setTreeMenuOpen] = useState(false);
   const terrainMenuRef = useRef<HTMLDivElement>(null);
+  const treeMenuRef = useRef<HTMLDivElement>(null);
 
   const drawMode = useEditorStore((s) => s.drawMode);
   const setDrawMode = useEditorStore((s) => s.setDrawMode);
   const pendingFlightLine = useEditorStore((s) => s.pendingFlightLine);
   const activeTerrainType = useEditorStore((s) => s.activeTerrainType);
   const setActiveTerrainType = useEditorStore((s) => s.setActiveTerrainType);
+  const activeTreeType = useEditorStore((s) => s.activeTreeType);
+  const setActiveTreeType = useEditorStore((s) => s.setActiveTreeType);
+  const treeBrushSettings = useEditorStore((s) => s.treeBrushSettings);
+  const setTreeBrushEnabled = useEditorStore((s) => s.setTreeBrushEnabled);
+  const setTreeBrushSettings = useEditorStore((s) => s.setTreeBrushSettings);
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const course = useCourseStore((s) => activeCourseId ? s.courses[activeCourseId] : null);
   const undo = useCourseStore((s) => s.undo);
@@ -83,11 +93,14 @@ export function Toolbar() {
   const undoStack = useCourseStore((s) => s.undoStack);
   const redoStack = useCourseStore((s) => s.redoStack);
 
-  // Close terrain menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (terrainMenuRef.current && !terrainMenuRef.current.contains(e.target as Node)) {
         setTerrainMenuOpen(false);
+      }
+      if (treeMenuRef.current && !treeMenuRef.current.contains(e.target as Node)) {
+        setTreeMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -105,6 +118,7 @@ export function Toolbar() {
     { mode: 'mandatory', icon: <ArrowRight size={20} />, labelKey: 'toolbar.placeMandatory', descriptionKey: 'toolbarDesc.mandatory' },
     { mode: 'annotation', icon: <Type size={20} />, labelKey: 'toolbar.placeAnnotation', descriptionKey: 'toolbarDesc.annotation' },
     { mode: 'infrastructure', icon: <Trees size={20} />, labelKey: 'toolbar.drawTerrain', descriptionKey: 'toolbarDesc.infrastructure' },
+    { mode: 'tree', icon: <TreeDeciduous size={20} />, labelKey: 'toolbar.placeTree', descriptionKey: 'toolbarDesc.tree' },
     { mode: 'path', icon: <Route size={20} />, labelKey: 'toolbar.drawPath', descriptionKey: 'toolbarDesc.path' },
   ];
 
@@ -112,6 +126,12 @@ export function Toolbar() {
     setActiveTerrainType(terrainType);
     setDrawMode('infrastructure');
     setTerrainMenuOpen(false);
+  };
+
+  const handleTreeSelect = (treeType: TreeType) => {
+    setActiveTreeType(treeType);
+    setDrawMode('tree');
+    setTreeMenuOpen(false);
   };
 
   // Get the description to show - either hovered tool or active tool
@@ -185,6 +205,106 @@ export function Toolbar() {
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : tool.mode === 'tree' ? (
+            // Special tree tool with dropdown
+            <div key={tool.mode} className="relative" ref={treeMenuRef}>
+              <button
+                onClick={() => {
+                  if (drawMode === 'tree') {
+                    setTreeMenuOpen(!treeMenuOpen);
+                  } else {
+                    setDrawMode('tree');
+                    setTreeMenuOpen(true);
+                  }
+                }}
+                onMouseEnter={() => setHoveredTool(tool.mode)}
+                onMouseLeave={() => setHoveredTool(null)}
+                className={`
+                  flex flex-col items-center justify-center p-2 rounded-lg transition-colors
+                  ${drawMode === 'tree' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'}
+                `}
+              >
+                <div className="flex items-center gap-0.5">
+                  {tool.icon}
+                  <ChevronDown size={12} className={`transition-transform ${treeMenuOpen ? 'rotate-180' : ''}`} />
+                </div>
+                <span className="text-xs mt-1 hidden sm:block">{t(tool.labelKey)}</span>
+              </button>
+
+              {/* Tree type dropdown */}
+              {treeMenuOpen && (
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-2 min-w-[220px] z-50">
+                  <div className="text-xs font-medium text-gray-500 px-2 mb-2">{t('tree.types', 'Select Tree')}</div>
+                  <div className="grid grid-cols-2 gap-1 mb-2">
+                    {(Object.keys(TREE_PATTERNS) as TreeType[]).map((treeType) => {
+                      const pattern = TREE_PATTERNS[treeType];
+                      const isActive = activeTreeType === treeType;
+                      return (
+                        <button
+                          key={treeType}
+                          onClick={() => handleTreeSelect(treeType)}
+                          className={`
+                            flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors
+                            ${isActive ? 'bg-green-100 text-green-800' : 'hover:bg-gray-100 text-gray-700'}
+                          `}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: pattern.defaultColors.primary }}
+                          />
+                          <span className="text-xs truncate">{getTreeName(t, treeType)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Brush mode toggle and settings */}
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <button
+                      onClick={() => setTreeBrushEnabled(!treeBrushSettings.enabled)}
+                      className={`
+                        w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors
+                        ${treeBrushSettings.enabled ? 'bg-green-100 text-green-800' : 'hover:bg-gray-100 text-gray-700'}
+                      `}
+                    >
+                      <Paintbrush size={14} />
+                      <span className="text-xs font-medium">{t('tree.brushMode', 'Brush Mode')}</span>
+                    </button>
+
+                    {treeBrushSettings.enabled && (
+                      <div className="mt-2 px-2 space-y-2">
+                        <div>
+                          <label className="text-xs text-gray-500">{t('tree.density', 'Density')}</label>
+                          <input
+                            type="range"
+                            min="20"
+                            max="100"
+                            value={treeBrushSettings.density}
+                            onChange={(e) => setTreeBrushSettings({ density: Number(e.target.value) })}
+                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                          />
+                          <div className="flex justify-between text-xs text-gray-400">
+                            <span>{t('tree.dense', 'Dense')}</span>
+                            <span>{t('tree.sparse', 'Sparse')}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500">{t('tree.sizeVariation', 'Size Variation')}</label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="50"
+                            value={treeBrushSettings.sizeVariation * 100}
+                            onChange={(e) => setTreeBrushSettings({ sizeVariation: Number(e.target.value) / 100 })}
+                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

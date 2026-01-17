@@ -9,6 +9,7 @@ import type {
   TerrainFeature,
   PathFeature,
 } from '../types/course';
+import type { TreeFeature } from '../types/trees';
 import { createEmptyHole as createHole, createEmptyCourse as createCourse } from '../types/course';
 import type { CourseSnapshot } from '../types/editor';
 
@@ -49,6 +50,12 @@ interface CourseActions {
   updatePathFeature: (courseId: string, featureId: string, updates: Partial<PathFeature['properties']>) => void;
   deletePathFeature: (courseId: string, featureId: string) => void;
   updatePathFeatureGeometry: (courseId: string, featureId: string, coordinates: unknown) => void;
+
+  // Tree feature management (course-level)
+  addTreeFeature: (courseId: string, feature: TreeFeature) => void;
+  updateTreeFeature: (courseId: string, featureId: string, updates: Partial<TreeFeature['properties']>) => void;
+  deleteTreeFeature: (courseId: string, featureId: string) => void;
+  updateTreeFeatureGeometry: (courseId: string, featureId: string, coordinates: unknown) => void;
 
   // Style
   updateStyle: (courseId: string, style: Partial<CourseStyle>) => void;
@@ -304,6 +311,53 @@ export const useCourseStore = create<CourseStore>()(
       set((state) => {
         const course = state.courses[courseId];
         const feature = course?.pathFeatures?.find((f) => f.properties.id === featureId);
+        if (feature) {
+          (feature.geometry as { coordinates: unknown }).coordinates = coordinates;
+          feature.properties.updatedAt = new Date().toISOString();
+          course!.updatedAt = new Date().toISOString();
+        }
+      });
+    },
+
+    // Tree feature management (course-level)
+    addTreeFeature: (courseId, feature) => {
+      set((state) => {
+        const course = state.courses[courseId];
+        if (course) {
+          if (!course.treeFeatures) {
+            course.treeFeatures = [];
+          }
+          course.treeFeatures.push(feature);
+          course.updatedAt = new Date().toISOString();
+        }
+      });
+    },
+
+    updateTreeFeature: (courseId, featureId, updates) => {
+      set((state) => {
+        const course = state.courses[courseId];
+        const feature = course?.treeFeatures?.find((f) => f.properties.id === featureId);
+        if (feature) {
+          Object.assign(feature.properties, updates, { updatedAt: new Date().toISOString() });
+          course!.updatedAt = new Date().toISOString();
+        }
+      });
+    },
+
+    deleteTreeFeature: (courseId, featureId) => {
+      set((state) => {
+        const course = state.courses[courseId];
+        if (course && course.treeFeatures) {
+          course.treeFeatures = course.treeFeatures.filter((f) => f.properties.id !== featureId);
+          course.updatedAt = new Date().toISOString();
+        }
+      });
+    },
+
+    updateTreeFeatureGeometry: (courseId, featureId, coordinates) => {
+      set((state) => {
+        const course = state.courses[courseId];
+        const feature = course?.treeFeatures?.find((f) => f.properties.id === featureId);
         if (feature) {
           (feature.geometry as { coordinates: unknown }).coordinates = coordinates;
           feature.properties.updatedAt = new Date().toISOString();

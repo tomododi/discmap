@@ -53,7 +53,8 @@
     "infrastructure": "Terrain",
     "terrain": "Terrain",
     "obLine": "OB Line",
-    "path": "Path"
+    "path": "Path",
+    "tree": "Tree"
   },
   "teePosition": {
     "pro": "Pro",
@@ -104,6 +105,7 @@
     "placeAnnotation": "Annotation",
     "drawTerrain": "Terrain",
     "drawPath": "Path",
+    "placeTree": "Tree",
     "undo": "Undo",
     "redo": "Redo",
     "export": "Export"
@@ -123,7 +125,8 @@
     "mandatory": "Click to place a mandatory. Scroll on it to rotate the arrow direction.",
     "annotation": "Click to add a text annotation. Edit text and style in the properties panel.",
     "infrastructure": "Draw terrain areas (forest, water, etc.). Select type from dropdown, then draw polygon. Double-click to finish.",
-    "path": "Draw a path line. Click to add points, double-click to finish. Adjust stroke width in properties."
+    "path": "Draw a path line. Click to add points, double-click to finish. Adjust stroke width in properties.",
+    "tree": "Click to place a tree. Select tree type from dropdown. Scroll on marker to rotate."
   },
   "editor": {
     "courseInfo": "Course Info",
@@ -170,7 +173,8 @@
     "dropzoneAreas": "OB Areas",
     "mandatories": "Mandatories",
     "annotations": "Annotations",
-    "paths": "Paths"
+    "paths": "Paths",
+    "trees": "Trees"
   },
   "file": {
     "menu": "File",
@@ -294,6 +298,31 @@
     "color": "Path Color",
     "nodeCount": "{{count}} nodes",
     "editHint": "Drag nodes to adjust. Click + to add nodes. Double-click to remove."
+  },
+  "tree": {
+    "types": "Select Tree",
+    "oak": "Oak",
+    "maple": "Maple",
+    "pine": "Pine",
+    "spruce": "Spruce",
+    "birch": "Birch",
+    "size": "Size",
+    "rotation": "Rotation",
+    "scrollToRotate": "Scroll on marker to rotate",
+    "customColors": "Custom Colors",
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "accent": "Accent",
+    "changeType": "Change Tree Type",
+    "brushMode": "Brush Mode",
+    "density": "Density",
+    "dense": "Dense",
+    "sparse": "Sparse",
+    "sizeVariation": "Size Variation",
+    "categories": {
+      "deciduous": "Deciduous",
+      "conifer": "Conifer"
+    }
   },
   "terrain": {
     "theme": "Map Theme",
