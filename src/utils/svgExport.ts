@@ -444,7 +444,8 @@ function generateDropzoneSVG(
   y: number,
   color: string,
   scale: number = 1,
-  rotation: number = 0
+  rotation: number = 0,
+  showLabel: boolean = true
 ): string {
   const borderColor = darkenColor(color);
   const textColor = getTextColor(color);
@@ -463,8 +464,8 @@ function generateDropzoneSVG(
         <!-- Direction arrow -->
         <polygon points="${w / 2 - 6 * scale},0 ${w / 2 - 10 * scale},${-3 * scale} ${w / 2 - 10 * scale},${3 * scale}" fill="${textColor}" opacity="0.6" />
       </g>
-      <!-- Text stays upright -->
-      <text x="0" y="${4 * scale}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${10 * scale}" fill="${textColor}">DZ</text>
+      ${showLabel ? `<!-- Text stays upright -->
+      <text x="0" y="${4 * scale}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${10 * scale}" fill="${textColor}">DZ</text>` : ''}
     </g>
   `;
 }
@@ -910,7 +911,7 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     const props = f.properties as DropzoneProperties;
     const dzColor = props.color || style.dropzoneColor;
     const scaledDzSize = 32 * markerScale;
-    svg += generateDropzoneSVG(x, y, dzColor, markerScale, props.rotation ?? 0);
+    svg += generateDropzoneSVG(x, y, dzColor, markerScale, props.rotation ?? 0, false);
     // Register dropzone bounding box
     collisionManager.addElement(`dz-${f.properties.id}`, {
       x: x - scaledDzSize / 2,
@@ -1282,7 +1283,7 @@ export function generatePrintLayoutSVG(options: PrintLayoutOptions): string {
     const [x, y] = geoToSVG(coords, mapViewport);
     const props = f.properties as DropzoneProperties;
     const dzColor = props.color || style.dropzoneColor;
-    svg += generateDropzoneSVG(x, y, dzColor, 0.8, props.rotation ?? 0);
+    svg += generateDropzoneSVG(x, y, dzColor, 0.8, props.rotation ?? 0, false);
   });
 
   const mandatories = allFeatures.filter((f) => f.properties.type === 'mandatory');
@@ -1486,7 +1487,7 @@ export function generateHolePageSVG(
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
       const props = f.properties as DropzoneProperties;
       const dzColor = props.color || style.dropzoneColor;
-      svg += generateDropzoneSVG(x, y, dzColor, 1.2, props.rotation ?? 0);
+      svg += generateDropzoneSVG(x, y, dzColor, 1.2, props.rotation ?? 0, false);
     });
 
     holeFeatures.filter((f) => f.properties.type === 'mandatory').forEach((f) => {
@@ -1946,7 +1947,7 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       const dzColor = props.color || style.dropzoneColor;
       // Make DZ point UP (toward basket) on teesign: 270° final = R + mapRotation, so R = 270 - mapRotation
       const dzPointsUp = 270 - mapRotation;
-      svg += generateDropzoneSVG(x, y, dzColor, 1.0, dzPointsUp);
+      svg += generateDropzoneSVG(x, y, dzColor, 1.0, dzPointsUp, false);
     });
 
     // Mandatories - use user's rotation directly (map rotation is applied via outer group)
