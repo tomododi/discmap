@@ -22,6 +22,7 @@ import {
   MapPin,
   Route,
   Paintbrush,
+  Eraser,
 } from 'lucide-react';
 import { useEditorStore, useCourseStore } from '../../stores';
 import type { DrawMode } from '../../types/editor';
@@ -85,6 +86,8 @@ export function Toolbar() {
   const setActiveTreeType = useEditorStore((s) => s.setActiveTreeType);
   const treeBrushSettings = useEditorStore((s) => s.treeBrushSettings);
   const setTreeBrushEnabled = useEditorStore((s) => s.setTreeBrushEnabled);
+  const setTreeEraserEnabled = useEditorStore((s) => s.setTreeEraserEnabled);
+  const setTreeEraserRadius = useEditorStore((s) => s.setTreeEraserRadius);
   const setTreeBrushSettings = useEditorStore((s) => s.setTreeBrushSettings);
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const course = useCourseStore((s) => activeCourseId ? s.courses[activeCourseId] : null);
@@ -107,20 +110,59 @@ export function Toolbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const tools: ToolConfig[] = [
-    { mode: 'select', icon: <MousePointer2 size={20} />, labelKey: 'toolbar.select', descriptionKey: 'toolbarDesc.select' },
-    { mode: 'tee', icon: <RectangleHorizontal size={20} />, labelKey: 'toolbar.placeTee', descriptionKey: 'toolbarDesc.tee' },
-    { mode: 'basket', icon: <Target size={20} />, labelKey: 'toolbar.placeBasket', descriptionKey: 'toolbarDesc.basket' },
-    { mode: 'dropzone', icon: <MapPin size={20} />, labelKey: 'toolbar.placeDropzone', descriptionKey: 'toolbarDesc.dropzone' },
-    { mode: 'flightLine', icon: <TrendingUp size={20} />, labelKey: 'toolbar.drawFlightLine', descriptionKey: 'toolbarDesc.flightLine' },
-    { mode: 'dropzoneArea', icon: <SquareDashedBottom size={20} />, labelKey: 'toolbar.drawDropzoneArea', descriptionKey: 'toolbarDesc.dropzoneArea' },
-    { mode: 'obLine', icon: <Minus size={20} />, labelKey: 'toolbar.drawOBLine', descriptionKey: 'toolbarDesc.obLine' },
-    { mode: 'mandatory', icon: <ArrowRight size={20} />, labelKey: 'toolbar.placeMandatory', descriptionKey: 'toolbarDesc.mandatory' },
-    { mode: 'annotation', icon: <Type size={20} />, labelKey: 'toolbar.placeAnnotation', descriptionKey: 'toolbarDesc.annotation' },
-    { mode: 'infrastructure', icon: <Trees size={20} />, labelKey: 'toolbar.drawTerrain', descriptionKey: 'toolbarDesc.infrastructure' },
-    { mode: 'tree', icon: <TreeDeciduous size={20} />, labelKey: 'toolbar.placeTree', descriptionKey: 'toolbarDesc.tree' },
-    { mode: 'path', icon: <Route size={20} />, labelKey: 'toolbar.drawPath', descriptionKey: 'toolbarDesc.path' },
+  // Tool groups for organized toolbar layout
+  const toolGroups: { tools: ToolConfig[]; separator?: boolean }[] = [
+    // Selection
+    {
+      tools: [
+        { mode: 'select', icon: <MousePointer2 size={20} />, labelKey: 'toolbar.select', descriptionKey: 'toolbarDesc.select' },
+      ],
+      separator: true,
+    },
+    // Markers
+    {
+      tools: [
+        { mode: 'tee', icon: <RectangleHorizontal size={20} />, labelKey: 'toolbar.placeTee', descriptionKey: 'toolbarDesc.tee' },
+        { mode: 'basket', icon: <Target size={20} />, labelKey: 'toolbar.placeBasket', descriptionKey: 'toolbarDesc.basket' },
+        { mode: 'dropzone', icon: <MapPin size={20} />, labelKey: 'toolbar.placeDropzone', descriptionKey: 'toolbarDesc.dropzone' },
+        { mode: 'mandatory', icon: <ArrowRight size={20} />, labelKey: 'toolbar.placeMandatory', descriptionKey: 'toolbarDesc.mandatory' },
+      ],
+      separator: true,
+    },
+    // Lines
+    {
+      tools: [
+        { mode: 'flightLine', icon: <TrendingUp size={20} />, labelKey: 'toolbar.drawFlightLine', descriptionKey: 'toolbarDesc.flightLine' },
+        { mode: 'obLine', icon: <Minus size={20} />, labelKey: 'toolbar.drawOBLine', descriptionKey: 'toolbarDesc.obLine' },
+      ],
+      separator: true,
+    },
+    // Zones
+    {
+      tools: [
+        { mode: 'dropzoneArea', icon: <SquareDashedBottom size={20} />, labelKey: 'toolbar.drawDropzoneArea', descriptionKey: 'toolbarDesc.dropzoneArea' },
+      ],
+      separator: true,
+    },
+    // Environment
+    {
+      tools: [
+        { mode: 'infrastructure', icon: <Trees size={20} />, labelKey: 'toolbar.drawTerrain', descriptionKey: 'toolbarDesc.infrastructure' },
+        { mode: 'tree', icon: <TreeDeciduous size={20} />, labelKey: 'toolbar.placeTree', descriptionKey: 'toolbarDesc.tree' },
+        { mode: 'path', icon: <Route size={20} />, labelKey: 'toolbar.drawPath', descriptionKey: 'toolbarDesc.path' },
+      ],
+      separator: true,
+    },
+    // Annotation
+    {
+      tools: [
+        { mode: 'annotation', icon: <Type size={20} />, labelKey: 'toolbar.placeAnnotation', descriptionKey: 'toolbarDesc.annotation' },
+      ],
+    },
   ];
+
+  // Flatten tools for lookup
+  const tools = toolGroups.flatMap(group => group.tools);
 
   const handleTerrainSelect = (terrainType: TerrainType) => {
     setActiveTerrainType(terrainType);
@@ -153,7 +195,9 @@ export function Toolbar() {
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
       {/* Main toolbar */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-2 py-1 flex items-center gap-1">
-        {tools.map((tool) => (
+        {toolGroups.map((group, groupIndex) => (
+          <div key={groupIndex} className="flex items-center gap-1">
+            {group.tools.map((tool) => (
           tool.mode === 'infrastructure' ? (
             // Special terrain tool with dropdown
             <div key={tool.mode} className="relative" ref={terrainMenuRef}>
@@ -262,46 +306,84 @@ export function Toolbar() {
                     })}
                   </div>
 
-                  {/* Brush mode toggle and settings */}
+                  {/* Brush/Eraser toggle buttons */}
                   <div className="border-t border-gray-200 pt-2 mt-2">
-                    <button
-                      onClick={() => setTreeBrushEnabled(!treeBrushSettings.enabled)}
-                      className={`
-                        w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors
-                        ${treeBrushSettings.enabled ? 'bg-green-100 text-green-800' : 'hover:bg-gray-100 text-gray-700'}
-                      `}
-                    >
-                      <Paintbrush size={14} />
-                      <span className="text-xs font-medium">{t('tree.brushMode', 'Brush Mode')}</span>
-                    </button>
+                    <div className="flex gap-1 mb-2">
+                      <button
+                        onClick={() => setTreeBrushEnabled(!treeBrushSettings.enabled)}
+                        className={`
+                          flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors text-xs font-medium
+                          ${treeBrushSettings.enabled
+                            ? 'bg-green-100 text-green-800 ring-1 ring-green-300'
+                            : 'hover:bg-gray-100 text-gray-700'}
+                        `}
+                      >
+                        <Paintbrush size={14} />
+                        <span>{t('tree.brush', 'Brush')}</span>
+                      </button>
+                      <button
+                        onClick={() => setTreeEraserEnabled(!treeBrushSettings.eraserEnabled)}
+                        className={`
+                          flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors text-xs font-medium
+                          ${treeBrushSettings.eraserEnabled
+                            ? 'bg-red-100 text-red-800 ring-1 ring-red-300'
+                            : 'hover:bg-gray-100 text-gray-700'}
+                        `}
+                      >
+                        <Eraser size={14} />
+                        <span>{t('tree.eraser', 'Eraser')}</span>
+                      </button>
+                    </div>
 
+                    {/* Brush settings */}
                     {treeBrushSettings.enabled && (
-                      <div className="mt-2 px-2 space-y-2">
+                      <div className="mt-2 px-2 space-y-2 bg-green-50 rounded-lg p-2">
                         <div>
-                          <label className="text-xs text-gray-500">{t('tree.density', 'Density')}</label>
+                          <label className="text-xs text-green-700 font-medium">{t('tree.density', 'Density')}</label>
                           <input
                             type="range"
                             min="20"
                             max="100"
                             value={treeBrushSettings.density}
                             onChange={(e) => setTreeBrushSettings({ density: Number(e.target.value) })}
-                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                            className="w-full h-1.5 bg-green-200 rounded-lg appearance-none cursor-pointer accent-green-600"
                           />
-                          <div className="flex justify-between text-xs text-gray-400">
+                          <div className="flex justify-between text-xs text-green-600">
                             <span>{t('tree.dense', 'Dense')}</span>
                             <span>{t('tree.sparse', 'Sparse')}</span>
                           </div>
                         </div>
                         <div>
-                          <label className="text-xs text-gray-500">{t('tree.sizeVariation', 'Size Variation')}</label>
+                          <label className="text-xs text-green-700 font-medium">{t('tree.sizeVariation', 'Size Variation')}</label>
                           <input
                             type="range"
                             min="0"
                             max="50"
                             value={treeBrushSettings.sizeVariation * 100}
                             onChange={(e) => setTreeBrushSettings({ sizeVariation: Number(e.target.value) / 100 })}
-                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                            className="w-full h-1.5 bg-green-200 rounded-lg appearance-none cursor-pointer accent-green-600"
                           />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Eraser settings */}
+                    {treeBrushSettings.eraserEnabled && (
+                      <div className="mt-2 px-2 space-y-2 bg-red-50 rounded-lg p-2">
+                        <div>
+                          <label className="text-xs text-red-700 font-medium">{t('tree.eraserRadius', 'Eraser Radius')}</label>
+                          <input
+                            type="range"
+                            min="20"
+                            max="100"
+                            value={treeBrushSettings.eraserRadius}
+                            onChange={(e) => setTreeEraserRadius(Number(e.target.value))}
+                            className="w-full h-1.5 bg-red-200 rounded-lg appearance-none cursor-pointer accent-red-600"
+                          />
+                          <div className="flex justify-between text-xs text-red-600">
+                            <span>{t('tree.small', 'Small')}</span>
+                            <span>{t('tree.large', 'Large')}</span>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -322,8 +404,11 @@ export function Toolbar() {
             />
           )
         ))}
+            {group.separator && <div className="w-px h-8 bg-gray-200 mx-1" />}
+          </div>
+        ))}
 
-        <div className="w-px h-8 bg-gray-200 mx-2" />
+        <div className="w-px h-8 bg-gray-200 mx-1" />
 
         <button
           onClick={undo}

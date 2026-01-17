@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Map, List, Palette, Layers, Settings2, Pencil, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, List, Palette, Layers, Settings2, Pencil, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useEditorStore, useSettingsStore, useCourseStore } from '../../stores';
 import { HoleList } from '../editor/HoleList';
@@ -95,10 +95,10 @@ export function Sidebar() {
         ${sidebarPosition === 'left' ? 'left-4' : 'right-4'}
       `}
     >
-      {/* Header with editable course name */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+      {/* Glass morphism header with editable course name */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-md border-b border-gray-200/50">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Map size={20} className="text-blue-600 flex-shrink-0" />
+          <img src="/logo.png" alt="DiscMap" className="w-10 h-10 flex-shrink-0 object-contain" />
           {isEditingName ? (
             <div className="flex items-center gap-1 flex-1 min-w-0">
               <input
@@ -108,19 +108,19 @@ export function Sidebar() {
                 onChange={(e) => setEditedName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onBlur={handleSaveName}
-                className="flex-1 min-w-0 px-2 py-1 text-sm font-semibold text-gray-900 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 min-w-0 px-2 py-1 text-sm font-semibold text-gray-900 border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
               />
               <button
                 onClick={handleSaveName}
-                className="p-1 rounded hover:bg-gray-100 text-green-600"
+                className="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-600 transition-colors"
               >
-                <Check size={16} />
+                <Check size={14} />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-1 flex-1 min-w-0 group">
               <span
-                className="font-semibold text-gray-900 truncate cursor-pointer hover:text-blue-600"
+                className="font-semibold text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
                 onClick={handleStartEditing}
                 title={course?.name || t('app.name')}
               >
@@ -128,7 +128,7 @@ export function Sidebar() {
               </span>
               <button
                 onClick={handleStartEditing}
-                className="p-1 rounded hover:bg-gray-100 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-1 rounded-lg hover:bg-white/60 text-gray-400 opacity-0 group-hover:opacity-100 transition-all"
                 title={t('actions.edit')}
               >
                 <Pencil size={14} />
@@ -140,31 +140,33 @@ export function Sidebar() {
           <LanguageSwitcher />
           <button
             onClick={toggleSidebar}
-            className="p-1 rounded hover:bg-gray-100"
+            className="p-1.5 rounded-lg hover:bg-white/60 transition-colors"
           >
             {sidebarPosition === 'left' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 overflow-x-auto custom-scrollbar-x">
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`
-              flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0
-              ${activeTab === tab.id
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-              }
-            `}
-          >
-            {tab.icon}
-            <span className="text-xs">{t(tab.labelKey)}</span>
-          </button>
-        ))}
+      {/* Modern pill-style tabs */}
+      <div className="px-3 py-2 bg-gray-50/80">
+        <div className="flex bg-gray-200/60 rounded-xl p-1 gap-1">
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium transition-all rounded-lg flex-1
+                ${activeTab === tab.id
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
+                }
+              `}
+            >
+              {tab.icon}
+              <span className="text-xs hidden sm:inline">{t(tab.labelKey)}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}

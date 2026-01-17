@@ -174,7 +174,12 @@
     "mandatories": "Mandatories",
     "annotations": "Annotations",
     "paths": "Paths",
-    "trees": "Trees"
+    "trees": "Trees",
+    "groupMarkers": "Markers",
+    "groupLines": "Lines",
+    "groupZones": "Zones",
+    "groupEnvironment": "Environment",
+    "groupOther": "Other"
   },
   "file": {
     "menu": "File",
@@ -315,6 +320,12 @@
     "accent": "Accent",
     "changeType": "Change Tree Type",
     "brushMode": "Brush Mode",
+    "brush": "Brush",
+    "eraser": "Eraser",
+    "eraserMode": "Eraser Mode",
+    "eraserRadius": "Eraser Radius",
+    "small": "Small",
+    "large": "Large",
     "density": "Density",
     "dense": "Dense",
     "sparse": "Sparse",

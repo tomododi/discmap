@@ -174,7 +174,12 @@
     "mandatories": "Manda",
     "annotations": "Adnotacje",
     "paths": "Ścieżki",
-    "trees": "Drzewa"
+    "trees": "Drzewa",
+    "groupMarkers": "Markery",
+    "groupLines": "Linie",
+    "groupZones": "Strefy",
+    "groupEnvironment": "Środowisko",
+    "groupOther": "Inne"
   },
   "file": {
     "menu": "Plik",
@@ -315,6 +320,12 @@
     "accent": "Akcent",
     "changeType": "Zmień Typ Drzewa",
     "brushMode": "Tryb Pędzla",
+    "brush": "Pędzel",
+    "eraser": "Gumka",
+    "eraserMode": "Tryb Gumki",
+    "eraserRadius": "Promień Gumki",
+    "small": "Mały",
+    "large": "Duży",
     "density": "Zagęszczenie",
     "dense": "Gęsto",
     "sparse": "Rzadko",

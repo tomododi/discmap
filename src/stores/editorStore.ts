@@ -22,6 +22,8 @@ interface EditorActions {
   setActiveTerrainType: (terrainType: TerrainType) => void;
   setActiveTreeType: (treeType: TreeType) => void;
   setTreeBrushEnabled: (enabled: boolean) => void;
+  setTreeEraserEnabled: (enabled: boolean) => void;
+  setTreeEraserRadius: (radius: number) => void;
   setTreeBrushSettings: (settings: Partial<TreeBrushSettings>) => void;
   reset: () => void;
 }
@@ -139,6 +141,26 @@ export const useEditorStore = create<EditorStore>()(
     setTreeBrushEnabled: (enabled) => {
       set((state) => {
         state.treeBrushSettings.enabled = enabled;
+        // Disable eraser when brush is enabled (mutual exclusivity)
+        if (enabled) {
+          state.treeBrushSettings.eraserEnabled = false;
+        }
+      });
+    },
+
+    setTreeEraserEnabled: (enabled) => {
+      set((state) => {
+        state.treeBrushSettings.eraserEnabled = enabled;
+        // Disable brush when eraser is enabled (mutual exclusivity)
+        if (enabled) {
+          state.treeBrushSettings.enabled = false;
+        }
+      });
+    },
+
+    setTreeEraserRadius: (radius) => {
+      set((state) => {
+        state.treeBrushSettings.eraserRadius = radius;
       });
     },
 

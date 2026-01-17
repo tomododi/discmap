@@ -31,6 +31,8 @@ export interface TreeBrushSettings {
   density: number;      // Spacing between trees in pixels (20-100)
   sizeVariation: number; // Random size variation (0-0.5)
   enabled: boolean;     // Whether brush mode is active
+  eraserEnabled: boolean; // Whether eraser mode is active
+  eraserRadius: number;  // Eraser radius in pixels (20-100)
 }
 
 export interface EditorState {
@@ -74,6 +76,8 @@ export const DEFAULT_TREE_BRUSH_SETTINGS: TreeBrushSettings = {
   density: 50,
   sizeVariation: 0.3,
   enabled: false,
+  eraserEnabled: false,
+  eraserRadius: 40,
 };
 
 export const DEFAULT_EDITOR_STATE: EditorState = {
