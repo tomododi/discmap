@@ -2,13 +2,12 @@ import { useTranslation } from 'react-i18next';
 import { Trash2, X, Trees } from 'lucide-react';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
 import { calculateDistance, formatDistance, calculateLineLength } from '../../utils/geo';
-import type { DiscGolfFeature, TeeFeature, BasketFeature, DropzoneFeature, DropzoneAreaFeature, FlightLineFeature, AnnotationFeature, OBLineFeature, LandmarkFeature, TerrainFeature, PathFeature, CourseLandmarkFeature } from '../../types/course';
+import type { DiscGolfFeature, TeeFeature, BasketFeature, DropzoneFeature, DropzoneAreaFeature, FlightLineFeature, AnnotationFeature, OBLineFeature, TerrainFeature, PathFeature } from '../../types/course';
 import { DEFAULT_TEE_COLORS } from '../../types/course';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
-import { LANDMARK_DEFINITIONS, LANDMARK_CATEGORIES, getLandmarksByCategory } from '../../types/landmarks';
 import { Button } from '../common/Button';
 import { RotationKnob } from '../common/RotationKnob';
-import { getTerrainName, getLandmarkName, getLandmarkCategoryName } from '../../utils/i18nHelpers';
+import { getTerrainName } from '../../utils/i18nHelpers';
 
 export function FeatureProperties() {
   const { t } = useTranslation();
@@ -24,8 +23,6 @@ export function FeatureProperties() {
   const deleteTerrainFeature = useCourseStore((s) => s.deleteTerrainFeature);
   const updatePathFeature = useCourseStore((s) => s.updatePathFeature);
   const deletePathFeature = useCourseStore((s) => s.deletePathFeature);
-  const updateLandmarkFeature = useCourseStore((s) => s.updateLandmarkFeature);
-  const deleteLandmarkFeature = useCourseStore((s) => s.deleteLandmarkFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
 
   if (!course || !selectedFeatureId) {
@@ -39,10 +36,9 @@ export function FeatureProperties() {
 
   // Find feature in active hole first, then search all holes, then course-level features
   let hole = activeHoleId ? course.holes.find((h) => h.id === activeHoleId) : null;
-  let feature: DiscGolfFeature | TerrainFeature | PathFeature | CourseLandmarkFeature | undefined = hole?.features.find((f) => f.properties.id === selectedFeatureId);
+  let feature: DiscGolfFeature | TerrainFeature | PathFeature | undefined = hole?.features.find((f) => f.properties.id === selectedFeatureId);
   let isTerrainFeature = false;
   let isPathFeature = false;
-  let isCourseLandmark = false;
 
   // If not found in active hole, search all holes
   if (!feature) {
@@ -74,16 +70,7 @@ export function FeatureProperties() {
     }
   }
 
-  // If still not found, search course-level landmark features
-  if (!feature && course.landmarkFeatures) {
-    const landmarkFound = course.landmarkFeatures.find((f) => f.properties.id === selectedFeatureId);
-    if (landmarkFound) {
-      feature = landmarkFound;
-      isCourseLandmark = true;
-    }
-  }
-
-  const isCourseLevel = isTerrainFeature || isPathFeature || isCourseLandmark;
+  const isCourseLevel = isTerrainFeature || isPathFeature;
 
   if (!feature || (!hole && !isCourseLevel)) {
     return (
@@ -95,14 +82,12 @@ export function FeatureProperties() {
 
   const featureHoleId = hole?.id;
 
-  const handleUpdate = (updates: Partial<DiscGolfFeature['properties']> | Partial<TerrainFeature['properties']> | Partial<PathFeature['properties']> | Partial<CourseLandmarkFeature['properties']>) => {
+  const handleUpdate = (updates: Partial<DiscGolfFeature['properties']> | Partial<TerrainFeature['properties']> | Partial<PathFeature['properties']>) => {
     saveSnapshot(course.id);
     if (isTerrainFeature) {
       updateTerrainFeature(course.id, selectedFeatureId, updates as Partial<TerrainFeature['properties']>);
     } else if (isPathFeature) {
       updatePathFeature(course.id, selectedFeatureId, updates as Partial<PathFeature['properties']>);
-    } else if (isCourseLandmark) {
-      updateLandmarkFeature(course.id, selectedFeatureId, updates as Partial<CourseLandmarkFeature['properties']>);
     } else if (featureHoleId) {
       updateFeature(course.id, featureHoleId, selectedFeatureId, updates as Partial<DiscGolfFeature['properties']>);
     }
@@ -114,8 +99,6 @@ export function FeatureProperties() {
       deleteTerrainFeature(course.id, selectedFeatureId);
     } else if (isPathFeature) {
       deletePathFeature(course.id, selectedFeatureId);
-    } else if (isCourseLandmark) {
-      deleteLandmarkFeature(course.id, selectedFeatureId);
     } else if (featureHoleId) {
       deleteFeature(course.id, featureHoleId, selectedFeatureId);
     }
@@ -775,210 +758,6 @@ export function FeatureProperties() {
               <span>10%</span>
               <span>50%</span>
               <span>100%</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Course-level Landmark properties */}
-      {feature.properties.type === 'courseLandmark' && (
-        <div className="space-y-3">
-          {/* Current landmark display */}
-          <div className="bg-amber-50 rounded-lg p-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-2xl">
-              {LANDMARK_DEFINITIONS[(feature.properties as CourseLandmarkFeature['properties']).landmarkType]?.icon || '📍'}
-            </div>
-            <div>
-              <div className="text-xs text-amber-600 font-medium">{t('landmarks.title', 'Landmark')}</div>
-              <div className="text-lg font-bold text-amber-700">
-                {getLandmarkName(t, (feature.properties as CourseLandmarkFeature['properties']).landmarkType)}
-              </div>
-            </div>
-          </div>
-
-          {/* Landmark type selector */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              {t('landmarks.changeType', 'Change Landmark Type')}
-            </label>
-            {LANDMARK_CATEGORIES.map((category) => (
-              <div key={category.id} className="mb-2">
-                <div className="text-xs text-gray-500 mb-1">{getLandmarkCategoryName(t, category.id)}</div>
-                <div className="flex flex-wrap gap-1">
-                  {getLandmarksByCategory(category.id).map((landmarkType) => {
-                    const def = LANDMARK_DEFINITIONS[landmarkType];
-                    const isActive = (feature.properties as CourseLandmarkFeature['properties']).landmarkType === landmarkType;
-                    return (
-                      <button
-                        key={landmarkType}
-                        onClick={() => handleUpdate({ landmarkType, label: getLandmarkName(t, landmarkType) })}
-                        className={`
-                          px-2 py-1 rounded-lg text-xs transition-colors flex items-center gap-1
-                          ${isActive ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-500' : 'hover:bg-gray-100 text-gray-700'}
-                        `}
-                        title={getLandmarkName(t, landmarkType)}
-                      >
-                        <span>{def?.icon || '📍'}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Size control */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('landmarks.size', 'Size')} ({((feature.properties as CourseLandmarkFeature['properties']).size ?? 1).toFixed(1)}x)
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="3"
-              step="0.1"
-              value={(feature.properties as CourseLandmarkFeature['properties']).size ?? 1}
-              onChange={(e) => handleUpdate({ size: parseFloat(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-            />
-          </div>
-
-          {/* Rotation control */}
-          <div className="border-t border-gray-200 pt-3">
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              {t('landmarks.rotation', 'Rotation')}
-            </label>
-            <RotationKnob
-              value={(feature.properties as CourseLandmarkFeature['properties']).rotation ?? 0}
-              onChange={(rotation) => handleUpdate({ rotation })}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Landmark properties */}
-      {feature.properties.type === 'landmark' && (
-        <div className="space-y-3">
-          {/* Current landmark display */}
-          <div className="bg-amber-50 rounded-lg p-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-2xl">
-              {LANDMARK_DEFINITIONS[(feature.properties as LandmarkFeature['properties']).landmarkType]?.icon || '📍'}
-            </div>
-            <div>
-              <div className="text-xs text-amber-600 font-medium">{t('landmarks.title', 'Landmark')}</div>
-              <div className="text-lg font-bold text-amber-700">
-                {getLandmarkName(t, (feature.properties as LandmarkFeature['properties']).landmarkType)}
-              </div>
-            </div>
-          </div>
-
-          {/* Landmark type selector */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              {t('landmarks.changeType', 'Change Landmark Type')}
-            </label>
-            {LANDMARK_CATEGORIES.map((category) => (
-              <div key={category.id} className="mb-2">
-                <div className="text-xs text-gray-500 mb-1">{getLandmarkCategoryName(t, category.id)}</div>
-                <div className="flex flex-wrap gap-1">
-                  {getLandmarksByCategory(category.id).map((landmarkType) => {
-                    const def = LANDMARK_DEFINITIONS[landmarkType];
-                    const isActive = (feature.properties as LandmarkFeature['properties']).landmarkType === landmarkType;
-                    return (
-                      <button
-                        key={landmarkType}
-                        onClick={() => handleUpdate({ landmarkType, label: getLandmarkName(t, landmarkType) })}
-                        className={`
-                          px-2 py-1 rounded-lg text-xs transition-colors flex items-center gap-1
-                          ${isActive ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-500' : 'hover:bg-gray-100 text-gray-700'}
-                        `}
-                        title={getLandmarkName(t, landmarkType)}
-                      >
-                        <span>{def.icon}</span>
-                        <span className="hidden sm:inline">{getLandmarkName(t, landmarkType)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Size slider */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('landmarks.size', 'Size')} ({((feature.properties as LandmarkFeature['properties']).size ?? 1).toFixed(1)}x)
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="3"
-              step="0.1"
-              value={(feature.properties as LandmarkFeature['properties']).size ?? 1}
-              onChange={(e) => handleUpdate({ size: parseFloat(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>0.5x</span>
-              <span>1x</span>
-              <span>2x</span>
-              <span>3x</span>
-            </div>
-            <div className="flex gap-1 mt-2">
-              {[0.5, 1, 1.5, 2].map((sizeVal) => (
-                <button
-                  key={sizeVal}
-                  onClick={() => handleUpdate({ size: sizeVal })}
-                  className={`
-                    flex-1 py-1.5 px-2 text-xs font-medium rounded-lg transition-colors
-                    ${(feature.properties as LandmarkFeature['properties']).size === sizeVal
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {sizeVal}x
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Rotation control */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              {t('landmarks.rotation', 'Rotation')}
-            </label>
-            <div className="flex justify-center">
-              <RotationKnob
-                value={(feature.properties as LandmarkFeature['properties']).rotation ?? 0}
-                onChange={(rotation) => handleUpdate({ rotation })}
-                color={(feature.properties as LandmarkFeature['properties']).color ||
-                  LANDMARK_DEFINITIONS[(feature.properties as LandmarkFeature['properties']).landmarkType]?.defaultColor || '#f59e0b'}
-                size={80}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-2 text-center">{t('landmarks.scrollToRotate', 'Use scroll wheel to rotate when selected')}</p>
-          </div>
-
-          {/* Custom color */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              {t('landmarks.customColor', 'Custom Color')}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={(feature.properties as LandmarkFeature['properties']).color ||
-                  LANDMARK_DEFINITIONS[(feature.properties as LandmarkFeature['properties']).landmarkType]?.defaultColor || '#3b82f6'}
-                onChange={(e) => handleUpdate({ color: e.target.value })}
-                className="w-8 h-8 rounded cursor-pointer border border-gray-300"
-              />
-              <button
-                onClick={() => handleUpdate({ color: undefined })}
-                className="text-xs text-gray-500 hover:text-gray-700"
-              >
-                {t('actions.reset', 'Reset to default')}
-              </button>
             </div>
           </div>
         </div>

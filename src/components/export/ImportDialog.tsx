@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Upload, FileJson, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Upload, FileJson, Loader2, AlertCircle, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 import { useCourseStore, useEditorStore } from '../../stores';
-import { validateCourseJSON, importCourseFromJSON, saveCourse } from '../../utils/storage';
+import { validateCourseJSON, importCourseFromJSON, saveCourse, downloadCourseJSON } from '../../utils/storage';
 import { Button } from '../common/Button';
 
 interface ImportDialogProps {
@@ -14,6 +14,8 @@ interface ImportDialogProps {
 export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const { t } = useTranslation();
   const addCourse = useCourseStore((s) => s.addCourse);
+  const courses = useCourseStore((s) => s.courses);
+  const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const setActiveCourse = useEditorStore((s) => s.setActiveCourse);
   const setActiveHole = useEditorStore((s) => s.setActiveHole);
 
@@ -21,7 +23,10 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ name: string; holes: number } | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentCourse = activeCourseId ? courses[activeCourseId] : null;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,10 +51,25 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
           holes: validation.course.holes?.length || 0,
         });
         setFileContent(content);
+        // Show confirmation if there's a current course
+        if (currentCourse) {
+          setShowConfirmation(true);
+        }
       }
     } catch {
       setError(t('import.readError', 'Could not read file'));
     }
+  };
+
+  const handleDownloadCurrent = () => {
+    if (currentCourse) {
+      downloadCourseJSON(currentCourse);
+    }
+  };
+
+  const handleProceedWithImport = () => {
+    setShowConfirmation(false);
+    handleImport();
   };
 
   const handleImport = async () => {
@@ -82,6 +102,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     setError(null);
     setPreview(null);
     setFileContent(null);
+    setShowConfirmation(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -157,10 +178,37 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
             </div>
           )}
 
+          {/* Confirmation Warning */}
+          {showConfirmation && currentCourse && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3 mb-3">
+                <AlertTriangle size={20} className="text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">
+                    {t('import.confirmTitle', 'Import will switch to new course')}
+                  </p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    {t('import.confirmMessage', 'You are currently editing "{{name}}". If you haven\'t saved it, download a backup first.', { name: currentCourse.name })}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={handleDownloadCurrent}
+              >
+                <Download size={16} className="mr-2" />
+                {t('import.downloadCurrent', 'Download current course ({{name}})', { name: currentCourse.name })}
+              </Button>
+            </div>
+          )}
+
           {/* Info */}
-          <p className="text-xs text-gray-500 mb-6">
-            {t('import.hint', 'The course will be imported with a new ID to avoid conflicts.')}
-          </p>
+          {!showConfirmation && (
+            <p className="text-xs text-gray-500 mb-6">
+              {t('import.hint', 'The course will be imported with a new ID to avoid conflicts.')}
+            </p>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-3">
@@ -169,24 +217,45 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
                 {t('import.cancel', 'Cancel')}
               </Button>
             </Dialog.Close>
-            <Button
-              variant="primary"
-              className="flex-1"
-              onClick={handleImport}
-              disabled={isImporting || !fileContent}
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />
-                  {t('import.importing', 'Importing...')}
-                </>
-              ) : (
-                <>
-                  <Upload size={16} className="mr-2" />
-                  {t('import.import', 'Import')}
-                </>
-              )}
-            </Button>
+            {showConfirmation ? (
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={handleProceedWithImport}
+                disabled={isImporting}
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    {t('import.importing', 'Importing...')}
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} className="mr-2" />
+                    {t('import.confirmImport', 'Yes, Import')}
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={currentCourse ? () => setShowConfirmation(true) : handleImport}
+                disabled={isImporting || !fileContent}
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    {t('import.importing', 'Importing...')}
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} className="mr-2" />
+                    {t('import.import', 'Import')}
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

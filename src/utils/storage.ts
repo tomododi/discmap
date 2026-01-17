@@ -15,7 +15,6 @@ function migrateCourse(course: Course): Course {
     // Ensure course-level feature arrays exist
     terrainFeatures: course.terrainFeatures ?? [],
     pathFeatures: course.pathFeatures ?? [],
-    landmarkFeatures: course.landmarkFeatures ?? [],
   };
 }
 

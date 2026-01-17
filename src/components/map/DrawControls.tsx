@@ -3,11 +3,10 @@ import type { MapRef } from 'react-map-gl/maplibre';
 import type { IControl } from 'maplibre-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useCourseStore, useEditorStore, useMapStore } from '../../stores';
-import type { DiscGolfFeature, TeeProperties, BasketProperties, DropzoneProperties, DropzoneAreaProperties, MandatoryProperties, FlightLineProperties, OBZoneProperties, OBLineProperties, FairwayProperties, AnnotationProperties, TerrainFeature, TerrainFeatureProperties, PathFeature, PathFeatureProperties, CourseLandmarkFeature, CourseLandmarkProperties } from '../../types/course';
+import type { DiscGolfFeature, TeeProperties, BasketProperties, DropzoneProperties, DropzoneAreaProperties, MandatoryProperties, FlightLineProperties, OBZoneProperties, OBLineProperties, FairwayProperties, AnnotationProperties, TerrainFeature, TerrainFeatureProperties, PathFeature, PathFeatureProperties } from '../../types/course';
 import { DEFAULT_TEE_COLORS } from '../../types/course';
 import type { DrawMode } from '../../types/editor';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
-import { LANDMARK_DEFINITIONS } from '../../types/landmarks';
 
 interface DrawControlsProps {
   mapRef: React.RefObject<MapRef | null>;
@@ -20,13 +19,11 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const activeHoleId = useEditorStore((s) => s.activeHoleId);
   const activeTerrainType = useEditorStore((s) => s.activeTerrainType);
-  const activeLandmarkType = useEditorStore((s) => s.activeLandmarkType);
   const setDrawMode = useEditorStore((s) => s.setDrawMode);
   const setSelectedFeature = useEditorStore((s) => s.setSelectedFeature);
   const addFeature = useCourseStore((s) => s.addFeature);
   const addTerrainFeature = useCourseStore((s) => s.addTerrainFeature);
   const addPathFeature = useCourseStore((s) => s.addPathFeature);
-  const addLandmarkFeature = useCourseStore((s) => s.addLandmarkFeature);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
   const courses = useCourseStore((s) => s.courses);
 
@@ -155,22 +152,6 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     };
   };
 
-  // Create course-level landmark properties
-  const createCourseLandmarkProperties = (): CourseLandmarkProperties => {
-    const now = new Date().toISOString();
-    const landmarkDef = LANDMARK_DEFINITIONS[activeLandmarkType];
-    return {
-      id: crypto.randomUUID(),
-      type: 'courseLandmark',
-      landmarkType: activeLandmarkType,
-      label: landmarkDef.name,
-      size: 1,
-      rotation: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-  };
-
   // Create feature from draw mode
   const createFeatureProperties = (drawMode: DrawMode): Partial<DiscGolfFeature['properties']> | null => {
     if (!activeHoleId) return null;
@@ -255,9 +236,6 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
       case 'path':
         // Path features are handled separately (course-level)
         return null;
-      case 'landmark':
-        // Landmark features are handled separately (course-level)
-        return null;
       default:
         return null;
     }
@@ -278,7 +256,6 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
       case 'dropzone':
       case 'mandatory':
       case 'annotation':
-      case 'landmark':
         draw.changeMode('draw_point');
         break;
       case 'flightLine':
@@ -365,31 +342,6 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
         return;
       }
 
-      // Handle landmark features separately (course-level, not hole-level)
-      if (drawMode === 'landmark') {
-        const landmarkProps = createCourseLandmarkProperties();
-
-        const landmarkFeature: CourseLandmarkFeature = {
-          type: 'Feature',
-          geometry: feature.geometry as GeoJSON.Point,
-          properties: landmarkProps,
-        };
-
-        addLandmarkFeature(activeCourseId, landmarkFeature);
-
-        // Delete the drawn feature (we're storing it in our own state)
-        if (drawRef.current && feature.id) {
-          drawRef.current.delete(feature.id as string);
-        }
-
-        // Select the newly created landmark feature
-        setSelectedFeature(landmarkProps.id);
-
-        // Reset to select mode
-        setDrawMode('select');
-        return;
-      }
-
       // Handle hole-level features
       if (!activeHoleId) return;
 
@@ -437,15 +389,12 @@ export function DrawControls({ mapRef }: DrawControlsProps) {
     activeCourseId,
     activeHoleId,
     activeTerrainType,
-    activeLandmarkType,
     createFeatureProperties,
     createTerrainFeatureProperties,
     createPathFeatureProperties,
-    createCourseLandmarkProperties,
     addFeature,
     addTerrainFeature,
     addPathFeature,
-    addLandmarkFeature,
     saveSnapshot,
     setDrawMode,
     setSelectedFeature,

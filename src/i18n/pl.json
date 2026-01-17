@@ -52,7 +52,6 @@
     "annotation": "Adnotacja",
     "infrastructure": "Teren",
     "terrain": "Teren",
-    "landmark": "Punkt Orientacyjny",
     "obLine": "Linia OB",
     "path": "Ścieżka"
   },
@@ -132,7 +131,6 @@
     "style": "Styl",
     "layers": "Warstwy",
     "properties": "Właściwości",
-    "landmarks": "Punkty",
     "noFeatureSelected": "Nie wybrano elementu",
     "clickToSelect": "Kliknij na element, aby edytować jego właściwości",
     "teeName": "Nazwa Tee",
@@ -171,7 +169,6 @@
     "dropzones": "Dropzony",
     "dropzoneAreas": "Obszary OB",
     "mandatories": "Manda",
-    "landmarks": "Punkty Orientacyjne",
     "annotations": "Adnotacje",
     "paths": "Ścieżki"
   },
@@ -192,7 +189,11 @@
     "importing": "Importowanie...",
     "invalidJson": "Nieprawidłowy plik JSON",
     "readError": "Nie można odczytać pliku",
-    "importError": "Nie udało się zaimportować pola"
+    "importError": "Nie udało się zaimportować pola",
+    "confirmTitle": "Import przełączy na nowe pole",
+    "confirmMessage": "Aktualnie edytujesz \"{{name}}\". Jeśli nie zapisałeś zmian, najpierw pobierz kopię zapasową.",
+    "downloadCurrent": "Pobierz aktualne pole ({{name}})",
+    "confirmImport": "Tak, Importuj"
   },
   "export": {
     "title": "Eksportuj Mapę",
@@ -334,52 +335,6 @@
     "gravel": "Żwir",
     "marsh": "Bagno / Mokradła",
     "rocks": "Skały"
-  },
-  "landmarks": {
-    "title": "Punkty Orientacyjne",
-    "hint": "Wybierz element i kliknij na mapie, aby go umieścić.",
-    "clickToPlace": "Kliknij na mapie, aby umieścić",
-    "tipsTitle": "Wskazówki:",
-    "tip1": "Punkty orientacyjne to elementy dekoracyjne",
-    "tip2": "Przeciągnij, aby zmienić pozycję po umieszczeniu",
-    "tip3": "Użyj kółka myszy, aby obrócić (gdy zaznaczony)",
-    "changeType": "Zmień Typ Punktu",
-    "size": "Rozmiar",
-    "rotation": "Obrót",
-    "customColor": "Własny Kolor",
-    "scrollToRotate": "Użyj kółka myszy, aby obrócić gdy zaznaczony",
-    "categories": {
-      "amenities": "Udogodnienia",
-      "nature": "Przyroda",
-      "signage": "Oznakowanie",
-      "hazards": "Przeszkody",
-      "structures": "Budowle"
-    },
-    "types": {
-      "parking": "Parking",
-      "restroom": "Toaleta",
-      "bench": "Ławka",
-      "picnicTable": "Stół Piknikowy",
-      "trashCan": "Kosz na Śmieci",
-      "waterFountain": "Fontanna z Wodą",
-      "tree": "Drzewo",
-      "treeGroup": "Grupa Drzew",
-      "bush": "Krzak",
-      "flower": "Kwiaty",
-      "rock": "Skała",
-      "stump": "Pniak",
-      "infoSign": "Tablica Informacyjna",
-      "holeSign": "Tablica Dołka",
-      "directionSign": "Drogowskaz",
-      "warningSign": "Znak Ostrzegawczy",
-      "fence": "Słupek Ogrodzenia",
-      "post": "Słupek",
-      "electricBox": "Skrzynka Elektryczna",
-      "shelter": "Wiata",
-      "bridge": "Most",
-      "stairs": "Schody",
-      "path": "Znacznik Ścieżki"
-    }
   },
   "languages": {
     "en": "English",

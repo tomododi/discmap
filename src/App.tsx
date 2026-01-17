@@ -30,10 +30,15 @@ function App() {
     loadAllCourses().then((loadedCourses) => {
       if (Object.keys(loadedCourses).length > 0) {
         setCourses(loadedCourses);
-        // Set first course as active
-        const firstCourseId = Object.keys(loadedCourses)[0];
-        setActiveCourse(firstCourseId);
-        const firstHoleId = loadedCourses[firstCourseId].holes[0]?.id;
+
+        // Try to restore previously active course from localStorage
+        const savedActiveCourseId = localStorage.getItem('discmap_activeCourseId');
+        const courseIdToActivate = savedActiveCourseId && loadedCourses[savedActiveCourseId]
+          ? savedActiveCourseId
+          : Object.keys(loadedCourses)[0];
+
+        setActiveCourse(courseIdToActivate);
+        const firstHoleId = loadedCourses[courseIdToActivate].holes[0]?.id;
         if (firstHoleId) {
           setActiveHole(firstHoleId);
         }

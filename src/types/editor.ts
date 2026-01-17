@@ -1,8 +1,7 @@
 import type { Course } from './course';
 import type { TerrainType } from './terrain';
-import type { LandmarkType } from './landmarks';
 
-export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'path' | 'landmark';
+export type DrawMode = 'select' | 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'path';
 
 export interface LayerVisibility {
   tees: boolean;
@@ -17,7 +16,6 @@ export interface LayerVisibility {
   annotations: boolean;
   infrastructure: boolean;
   paths: boolean;
-  landmarks: boolean;
 }
 
 export interface PendingFlightLine {
@@ -38,7 +36,6 @@ export interface EditorState {
   sidebarCollapsed: boolean;
   pendingFlightLine: PendingFlightLine | null;
   activeTerrainType: TerrainType;
-  activeLandmarkType: LandmarkType;
 }
 
 export interface CourseSnapshot {
@@ -60,7 +57,6 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
   annotations: true,
   infrastructure: true,
   paths: true,
-  landmarks: true,
 };
 
 export const DEFAULT_EDITOR_STATE: EditorState = {
@@ -74,5 +70,4 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
   sidebarCollapsed: false,
   pendingFlightLine: null,
   activeTerrainType: 'forest',
-  activeLandmarkType: 'tree',
 };

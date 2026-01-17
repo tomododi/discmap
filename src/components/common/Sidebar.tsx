@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Map, List, Palette, Layers, Settings2, MapPin, Pencil, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Map, List, Palette, Layers, Settings2, Pencil, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useEditorStore, useSettingsStore, useCourseStore } from '../../stores';
 import { HoleList } from '../editor/HoleList';
@@ -7,10 +7,9 @@ import { HoleEditor } from '../editor/HoleEditor';
 import { LayerControls } from '../editor/LayerControls';
 import { FeatureProperties } from '../editor/FeatureProperties';
 import { ColorSchemeEditor } from '../editor/ColorSchemeEditor';
-import { LandmarkEditor } from '../editor/LandmarkEditor';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
-type Tab = 'holes' | 'style' | 'layers' | 'properties' | 'landmarks';
+type Tab = 'holes' | 'style' | 'layers' | 'properties';
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -67,7 +66,6 @@ export function Sidebar() {
   const tabs: { id: Tab; icon: React.ReactNode; labelKey: string; show?: boolean }[] = [
     { id: 'holes', icon: <List size={18} />, labelKey: 'editor.holes' },
     { id: 'properties', icon: <Settings2 size={18} />, labelKey: 'editor.properties', show: !!selectedFeatureId },
-    { id: 'landmarks', icon: <MapPin size={18} />, labelKey: 'editor.landmarks' },
     { id: 'layers', icon: <Layers size={18} />, labelKey: 'editor.layers' },
     { id: 'style', icon: <Palette size={18} />, labelKey: 'editor.style' },
   ];
@@ -178,11 +176,6 @@ export function Sidebar() {
           </div>
         )}
         {activeTab === 'properties' && <FeatureProperties />}
-        {activeTab === 'landmarks' && (
-          <div className="p-3">
-            <LandmarkEditor />
-          </div>
-        )}
         {activeTab === 'style' && <ColorSchemeEditor />}
         {activeTab === 'layers' && <LayerControls />}
       </div>

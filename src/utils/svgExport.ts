@@ -1,9 +1,8 @@
 import { bbox } from '@turf/turf';
-import type { Course, Hole, DiscGolfFeature, CourseStyle, TeeProperties, FlightLineProperties, DropzoneProperties, LandmarkProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature } from '../types/course';
+import type { Course, Hole, DiscGolfFeature, CourseStyle, TeeProperties, FlightLineProperties, DropzoneProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature } from '../types/course';
 import type { ExportConfig } from '../types/export';
 import { TERRAIN_PATTERNS, getTerrainColors } from '../types/terrain';
 import { generateTerrainPattern, generateCompassRose, generateScaleBar, resetPatternIds } from './svgPatterns';
-import { generateLandmarkSVG } from './landmarkSvg';
 
 // ============ COORDINATE TRANSFORMATION ============
 
@@ -399,7 +398,6 @@ function generateTeeSVG(
 function generateBasketSVG(
   x: number,
   y: number,
-  holeNumber: number | undefined,
   style: CourseStyle,
   scale: number = 1,
   rotation: number = 0
@@ -437,7 +435,6 @@ function generateBasketSVG(
           <ellipse cx="${16 * s}" cy="${18 * s}" rx="${8 * s}" ry="${2 * s}" fill="none" stroke="${bodyBorder}" stroke-width="${s}" />
         </g>
       </g>
-      ${holeNumber ? `<text x="0" y="${4 * s}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${8 * s}" fill="#ffffff">${holeNumber}</text>` : ''}
     </g>
   `;
 }
@@ -939,27 +936,6 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     }, 3);
   });
 
-  // Landmarks - with collision registration
-  const landmarks = allFeatures.filter((f) => f.properties.type === 'landmark');
-  landmarks.forEach((f) => {
-    const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
-    const [x, y] = geoToSVG(coords, viewport);
-    const props = f.properties as LandmarkProperties;
-    const landmarkSize = (props.size ?? 1) * 24 * markerScale; // Approximate landmark size
-    svg += generateLandmarkSVG(props.landmarkType, x, y, {
-      size: (props.size ?? 1) * markerScale,
-      rotation: props.rotation ?? 0,
-      color: props.color,
-    });
-    // Register landmark bounding box
-    collisionManager.addElement(`landmark-${f.properties.id}`, {
-      x: x - landmarkSize / 2,
-      y: y - landmarkSize / 2,
-      width: landmarkSize,
-      height: landmarkSize,
-    }, 4);
-  });
-
   // Annotations
   const annotations = allFeatures.filter((f) => f.properties.type === 'annotation');
   annotations.forEach((f) => {
@@ -1014,13 +990,9 @@ export function generateCourseSVG(options: SVGExportOptions): string {
   baskets.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
     const [x, y] = geoToSVG(coords, viewport);
-    const holeId = f.properties.holeId;
-    const holeNumber = includeHoleNumbers
-      ? holesToExport.find((h) => h.id === holeId)?.number
-      : undefined;
     const scaledBasketW = 32 * markerScale;
     const scaledBasketH = 44 * markerScale;
-    svg += generateBasketSVG(x, y, holeNumber, style, markerScale);
+    svg += generateBasketSVG(x, y, style, markerScale);
     // Register basket bounding box (highest priority)
     collisionManager.addElement(`basket-${f.properties.id}`, {
       x: x - scaledBasketW / 2,
@@ -1321,19 +1293,6 @@ export function generatePrintLayoutSVG(options: PrintLayoutOptions): string {
     svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 0.8, props.lineAngle ?? 270);
   });
 
-  // Landmarks
-  const landmarks = allFeatures.filter((f) => f.properties.type === 'landmark');
-  landmarks.forEach((f) => {
-    const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
-    const [x, y] = geoToSVG(coords, mapViewport);
-    const props = f.properties as LandmarkProperties;
-    svg += generateLandmarkSVG(props.landmarkType, x, y, {
-      size: (props.size ?? 1) * 0.8,
-      rotation: props.rotation ?? 0,
-      color: props.color,
-    });
-  });
-
   // Annotations
   const annotations = allFeatures.filter((f) => f.properties.type === 'annotation');
   annotations.forEach((f) => {
@@ -1376,9 +1335,7 @@ export function generatePrintLayoutSVG(options: PrintLayoutOptions): string {
   baskets.forEach((f) => {
     const coords = (f.geometry as { coordinates: number[] }).coordinates as [number, number];
     const [x, y] = geoToSVG(coords, mapViewport);
-    const holeId = f.properties.holeId;
-    const holeNumber = course.holes.find((h) => h.id === holeId)?.number;
-    svg += generateBasketSVG(x, y, holeNumber, style, 0.8);
+    svg += generateBasketSVG(x, y, style, 0.8);
   });
 
   svg += '</g>'; // End map area
@@ -1538,17 +1495,6 @@ export function generateHolePageSVG(
       svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 1.2, props.lineAngle ?? 270);
     });
 
-    // Landmarks
-    holeFeatures.filter((f) => f.properties.type === 'landmark').forEach((f) => {
-      const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
-      const props = f.properties as LandmarkProperties;
-      svg += generateLandmarkSVG(props.landmarkType, x, y, {
-        size: (props.size ?? 1) * 1.2,
-        rotation: props.rotation ?? 0,
-        color: props.color,
-      });
-    });
-
     // Annotations
     holeFeatures.filter((f) => f.properties.type === 'annotation').forEach((f) => {
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
@@ -1583,7 +1529,7 @@ export function generateHolePageSVG(
 
     holeFeatures.filter((f) => f.properties.type === 'basket').forEach((f) => {
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
-      svg += generateBasketSVG(x, y, hole.number, style, 1.2);
+      svg += generateBasketSVG(x, y, style, 1.2);
     });
 
     svg += '</g>';
@@ -1714,6 +1660,16 @@ function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
   if (currentLine) lines.push(currentLine);
 
   return lines;
+}
+
+// Escape special XML characters in text
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 export function generateTeeSignSVG(options: TeeSignOptions): string {
@@ -1983,50 +1939,40 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       svg += `<path d="${path}" fill="none" stroke="${lineColor}" stroke-width="${style.flightLineWidth * 1.5}" stroke-dasharray="12 6" stroke-linecap="round" />`;
     });
 
-    // Dropzones - adjust rotation to compensate for map rotation
+    // Dropzones - point toward basket (UP on teesign)
     holeFeatures.filter(f => f.properties.type === 'dropzone').forEach(f => {
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
       const props = f.properties as DropzoneProperties;
       const dzColor = props.color || style.dropzoneColor;
-      const adjustedRotation = (props.rotation ?? 0) - mapRotation;
-      svg += generateDropzoneSVG(x, y, dzColor, 1.0, adjustedRotation);
+      // Make DZ point UP (toward basket) on teesign: 270° final = R + mapRotation, so R = 270 - mapRotation
+      const dzPointsUp = 270 - mapRotation;
+      svg += generateDropzoneSVG(x, y, dzColor, 1.0, dzPointsUp);
     });
 
-    // Mandatories - adjust rotation to compensate for map rotation
+    // Mandatories - use user's rotation directly (map rotation is applied via outer group)
     holeFeatures.filter(f => f.properties.type === 'mandatory').forEach(f => {
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
       const props = f.properties as { rotation: number; lineAngle?: number };
-      const adjustedRotation = (props.rotation ?? 0) - mapRotation;
-      const adjustedLineAngle = (props.lineAngle ?? 270) - mapRotation;
-      svg += generateMandatorySVG(x, y, adjustedRotation, style.mandatoryColor, 1.0, adjustedLineAngle);
+      // Don't adjust for mapRotation - mando directions are relative to course layout
+      // and should rotate with the map
+      svg += generateMandatorySVG(x, y, props.rotation ?? 0, style.mandatoryColor, 1.0, props.lineAngle ?? 270);
     });
 
-    // Landmarks - adjust rotation to compensate for map rotation
-    holeFeatures.filter(f => f.properties.type === 'landmark').forEach(f => {
-      const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
-      const props = f.properties as LandmarkProperties;
-      const adjustedRotation = (props.rotation ?? 0) - mapRotation;
-      svg += generateLandmarkSVG(props.landmarkType, x, y, {
-        size: props.size ?? 1,
-        rotation: adjustedRotation,
-        color: props.color,
-      });
-    });
-
-    // Tees - adjust rotation so tee points UP (270 in SVG space) after map rotation
+    // Tees - always point toward basket (UP on teesign)
+    // No hole number on tee pad for teesigns (number shown in header instead)
     holeFeatures.filter(f => f.properties.type === 'tee').forEach(f => {
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
       const props = f.properties as TeeProperties;
       const teeColor = props.color || style.defaultTeeColor;
-      // Make tee always point up (270°) after map rotation is applied
+      // Make tee point UP (toward basket) on teesign: 270° final = R + mapRotation, so R = 270 - mapRotation
       const teePointsUp = 270 - mapRotation;
-      svg += generateTeeSVG(x, y, teeColor, hole.number, props.name, 1.0, teePointsUp);
+      svg += generateTeeSVG(x, y, teeColor, undefined, props.name, 1.0, teePointsUp);
     });
 
     // Baskets - counter-rotate so basket always appears upright
     holeFeatures.filter(f => f.properties.type === 'basket').forEach(f => {
       const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
-      svg += generateBasketSVG(x, y, hole.number, style, 1.0, -mapRotation);
+      svg += generateBasketSVG(x, y, style, 1.0, -mapRotation);
     });
 
     svg += '</g>'; // End rotation group
@@ -2127,43 +2073,129 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     svg += '</g>';
   }
 
-  // ============ INFO SECTION ============
-  const infoY = mapY + mapAreaHeight + 20;
-  svg += `<line x1="${padding}" y1="${infoY}" x2="${width - padding}" y2="${infoY}" stroke="#e2e8f0" stroke-width="1" />`;
+  // ============ INFO SECTION - 4 Column Grid Layout ============
+  const infoY = mapY + mapAreaHeight + 16;
+  const infoWidth = width - 2 * padding;
+  const columnGap = 12;
+  const columnCount = 4;
+  const columnWidth = (infoWidth - (columnCount - 1) * columnGap) / columnCount;
+  const cardPadding = 10;
+  const lineHeight = 15;
+  const headerFontSize = 11;
+  const bodyFontSize = 12;
 
-  let currentInfoY = infoY + 24;
-  const maxInfoWidth = width - 2 * padding;
+  // Collect ALL notes
+  const allNotes: Array<{ label: string; note: string; color: string; icon: string }> = [];
 
-  // Notes
+  // Add hole notes first
   if (includeNotes && hole.notes) {
-    svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="#374151">Notes:</text>`;
-    currentInfoY += 18;
-
-    const notesLines = wrapText(hole.notes, maxInfoWidth, 11);
-    const maxLines = 4;
-    notesLines.slice(0, maxLines).forEach((line, i) => {
-      const displayLine = i === maxLines - 1 && notesLines.length > maxLines
-        ? line.slice(0, -3) + '...'
-        : line;
-      svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-size="11" fill="#6b7280">${displayLine}</text>`;
-      currentInfoY += 16;
+    allNotes.push({
+      label: 'Hole Info',
+      note: hole.notes,
+      color: '#3b82f6',
+      icon: 'ℹ'
     });
-    currentInfoY += 8;
   }
 
-  // Rules
-  if (includeRules && hole.rules && hole.rules.length > 0) {
-    svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="#374151">Local Rules:</text>`;
-    currentInfoY += 18;
-
-    const maxRules = 4;
-    hole.rules.slice(0, maxRules).forEach((rule) => {
-      svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-size="11" fill="#6b7280">• ${rule}</text>`;
-      currentInfoY += 16;
+  // Collect ALL feature notes (no limit)
+  if (includeNotes) {
+    hole.features.forEach(f => {
+      const props = f.properties as { notes?: string; type: string; label?: string };
+      if (props.notes) {
+        let label = '';
+        let color = '#6b7280';
+        let icon = '•';
+        switch (props.type) {
+          case 'dropzone':
+            label = 'Dropzone';
+            color = style.dropzoneColor;
+            icon = '◎';
+            break;
+          case 'mandatory':
+            label = 'Mandatory';
+            color = style.mandatoryColor;
+            icon = '→';
+            break;
+          case 'tee':
+            label = props.label || 'Tee';
+            color = (f.properties as TeeProperties).color || style.defaultTeeColor;
+            icon = '▣';
+            break;
+          case 'basket':
+            label = 'Basket';
+            color = style.basketTopColor;
+            icon = '⛳';
+            break;
+          case 'obZone':
+          case 'obLine':
+            label = props.label || 'OB';
+            color = '#dc2626';
+            icon = '⚠';
+            break;
+          default:
+            label = props.label || props.type;
+            icon = '•';
+        }
+        allNotes.push({ label, note: props.notes, color, icon });
+      }
     });
-    if (hole.rules.length > maxRules) {
-      svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">  + ${hole.rules.length - maxRules} more...</text>`;
-    }
+  }
+
+  // Add rules as notes
+  if (includeRules && hole.rules && hole.rules.length > 0) {
+    hole.rules.forEach((rule, i) => {
+      allNotes.push({
+        label: `Rule ${i + 1}`,
+        note: rule,
+        color: '#059669',
+        icon: '✓'
+      });
+    });
+  }
+
+  // Only render info section if there are notes
+  if (allNotes.length > 0) {
+    // Section divider line
+    svg += `<line x1="${padding}" y1="${infoY}" x2="${width - padding}" y2="${infoY}" stroke="#e5e7eb" stroke-width="1" />`;
+
+    // Calculate card layout - distribute notes across 4 columns
+    const cardHeight = 70; // Fixed card height for consistency
+    const cardGap = 8;
+
+    // Render each note as a card in the grid
+    allNotes.forEach((noteItem, index) => {
+      const columnIndex = index % columnCount;
+      const rowIndex = Math.floor(index / columnCount);
+
+      const cardX = padding + columnIndex * (columnWidth + columnGap);
+      const cardY = infoY + 12 + rowIndex * (cardHeight + cardGap);
+
+      // Card background with subtle shadow effect
+      svg += `<rect x="${cardX + 1}" y="${cardY + 1}" width="${columnWidth}" height="${cardHeight}" rx="6" fill="#00000008" />`;
+      svg += `<rect x="${cardX}" y="${cardY}" width="${columnWidth}" height="${cardHeight}" rx="6" fill="#fafafa" stroke="#e5e7eb" stroke-width="1" />`;
+
+      // Color accent bar on left
+      svg += `<rect x="${cardX}" y="${cardY}" width="4" height="${cardHeight}" rx="2" fill="${noteItem.color}" />`;
+
+      // Header with icon and label
+      const headerY = cardY + cardPadding + headerFontSize;
+      svg += `<text x="${cardX + cardPadding + 4}" y="${headerY}" font-family="Arial, sans-serif" font-weight="bold" font-size="${headerFontSize}" fill="${noteItem.color}">${noteItem.label}</text>`;
+
+      // Note text - wrap to fit card width
+      const textStartY = headerY + lineHeight + 2;
+      const maxTextWidth = columnWidth - cardPadding * 2 - 4;
+      const noteLines = wrapText(noteItem.note, maxTextWidth, bodyFontSize);
+
+      // Show as many lines as fit (typically 2-3 lines per card)
+      const maxLinesInCard = 3;
+      noteLines.slice(0, maxLinesInCard).forEach((line, lineIndex) => {
+        const lineY = textStartY + lineIndex * lineHeight;
+        const displayLine = lineIndex === maxLinesInCard - 1 && noteLines.length > maxLinesInCard
+          ? line.substring(0, Math.floor(line.length * 0.85)) + '...'
+          : line;
+        svg += `<text x="${cardX + cardPadding + 4}" y="${lineY}" font-family="Arial, sans-serif" font-size="${bodyFontSize}" fill="#374151">${escapeXml(displayLine)}</text>`;
+      });
+    });
   }
 
   svg += '</svg>';

@@ -48,7 +48,6 @@ export function LayerControls() {
 
   const layers: { name: keyof LayerVisibility; labelKey: string; color: string }[] = [
     { name: 'infrastructure', labelKey: 'layers.infrastructure', color: '#16a34a' },
-    { name: 'landmarks', labelKey: 'layers.landmarks', color: '#f59e0b' },
     { name: 'tees', labelKey: 'layers.tees', color: '#22c55e' },
     { name: 'baskets', labelKey: 'layers.baskets', color: '#ef4444' },
     { name: 'flightLines', labelKey: 'layers.flightLines', color: '#3b82f6' },

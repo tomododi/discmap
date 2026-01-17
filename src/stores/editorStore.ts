@@ -3,7 +3,6 @@ import { immer } from 'zustand/middleware/immer';
 import type { DrawMode, EditorState, LayerVisibility, PendingFlightLine } from '../types/editor';
 import { DEFAULT_EDITOR_STATE } from '../types/editor';
 import type { TerrainType } from '../types/terrain';
-import type { LandmarkType } from '../types/landmarks';
 
 interface EditorActions {
   setActiveCourse: (courseId: string | null) => void;
@@ -20,7 +19,6 @@ interface EditorActions {
   setPendingFlightLine: (pending: PendingFlightLine | null) => void;
   clearPendingFlightLine: () => void;
   setActiveTerrainType: (terrainType: TerrainType) => void;
-  setActiveLandmarkType: (landmarkType: LandmarkType) => void;
   reset: () => void;
 }
 
@@ -36,6 +34,12 @@ export const useEditorStore = create<EditorStore>()(
         state.activeHoleId = null;
         state.selectedFeatureId = null;
       });
+      // Persist to localStorage so it survives page refresh
+      if (courseId) {
+        localStorage.setItem('discmap_activeCourseId', courseId);
+      } else {
+        localStorage.removeItem('discmap_activeCourseId');
+      }
     },
 
     setActiveHole: (holeId) => {
@@ -119,12 +123,6 @@ export const useEditorStore = create<EditorStore>()(
     setActiveTerrainType: (terrainType) => {
       set((state) => {
         state.activeTerrainType = terrainType;
-      });
-    },
-
-    setActiveLandmarkType: (landmarkType) => {
-      set((state) => {
-        state.activeLandmarkType = landmarkType;
       });
     },
 

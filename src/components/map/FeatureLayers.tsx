@@ -3,13 +3,12 @@ import { Source, Layer, Marker } from 'react-map-gl/maplibre';
 import type { MarkerDragEvent } from 'react-map-gl/maplibre';
 import { useCourseStore, useEditorStore, useMapStore } from '../../stores';
 import { useSettingsStore } from '../../stores/settingsStore';
-import type { TeeFeature, BasketFeature, DropzoneFeature, MandatoryFeature, FlightLineFeature, AnnotationFeature, FlightLineProperties, DiscGolfFeature, OBLineFeature, LandmarkFeature, TerrainFeature, PathFeature, CourseLandmarkFeature } from '../../types/course';
+import type { TeeFeature, BasketFeature, DropzoneFeature, MandatoryFeature, FlightLineFeature, AnnotationFeature, FlightLineProperties, DiscGolfFeature, OBLineFeature, TerrainFeature, PathFeature } from '../../types/course';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
 import { TeeMarker } from './markers/TeeMarker';
 import { BasketMarker } from './markers/BasketMarker';
 import { DropzoneMarker } from './markers/DropzoneMarker';
 import { MandatoryMarker } from './markers/MandatoryMarker';
-import { LandmarkMarker } from './markers/LandmarkMarker';
 import { calculateLineLength } from '../../utils/geo';
 
 export function FeatureLayers() {
@@ -29,7 +28,6 @@ export function FeatureLayers() {
   const updateFeatureGeometry = useCourseStore((s) => s.updateFeatureGeometry);
   const updateFeature = useCourseStore((s) => s.updateFeature);
   const updateTerrainFeatureGeometry = useCourseStore((s) => s.updateTerrainFeatureGeometry);
-  const updateLandmarkFeatureGeometry = useCourseStore((s) => s.updateLandmarkFeatureGeometry);
   const updatePathFeatureGeometry = useCourseStore((s) => s.updatePathFeatureGeometry);
   const saveSnapshot = useCourseStore((s) => s.saveSnapshot);
   const units = useSettingsStore((s) => s.units);
@@ -94,9 +92,10 @@ export function FeatureLayers() {
   const handleFeatureRotate = useCallback(
     (featureId: string, holeId: string, newRotation: number) => {
       if (!activeCourseId) return;
+      saveSnapshot(activeCourseId);
       updateFeature(activeCourseId, holeId, featureId, { rotation: newRotation });
     },
-    [activeCourseId, updateFeature]
+    [activeCourseId, updateFeature, saveSnapshot]
   );
 
   // Handler for dragging flight line vertices
@@ -523,16 +522,12 @@ export function FeatureLayers() {
   const obLines = features.filter((f) => f.properties.type === 'obLine' && showLayers.obLines) as OBLineFeature[];
   const fairways = features.filter((f) => f.properties.type === 'fairway' && showLayers.fairways);
   const dropzoneAreas = features.filter((f) => f.properties.type === 'dropzoneArea' && showLayers.dropzoneAreas);
-  const landmarks = features.filter((f) => f.properties.type === 'landmark' && showLayers.landmarks) as LandmarkFeature[];
 
   // Course-level terrain features (not tied to holes)
   const terrainFeatures = (showLayers.infrastructure && course.terrainFeatures) ? course.terrainFeatures : [] as TerrainFeature[];
 
   // Course-level path features (not tied to holes)
   const pathFeatures = (showLayers.paths && course.pathFeatures) ? course.pathFeatures : [] as PathFeature[];
-
-  // Course-level landmark features (not tied to holes)
-  const courseLandmarks = (showLayers.landmarks && course.landmarkFeatures) ? course.landmarkFeatures : [] as CourseLandmarkFeature[];
 
   // Get color for a feature (uses feature's color or falls back to style default)
   const getFeatureColor = (feature: FlightLineFeature) => {
@@ -1096,71 +1091,6 @@ export function FeatureLayers() {
             >
               {props.text}
             </div>
-          </Marker>
-        );
-      })}
-
-      {/* Landmark markers */}
-      {landmarks.map((feature) => {
-        const props = feature.properties;
-        const isSelected = selectedFeatureId === feature.properties.id;
-
-        return (
-          <Marker
-            key={feature.properties.id}
-            longitude={feature.geometry.coordinates[0]}
-            latitude={feature.geometry.coordinates[1]}
-            anchor="center"
-            rotationAlignment="viewport"
-            draggable
-            onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e)}
-            onClick={(e) => {
-              e.originalEvent.stopPropagation();
-              setSelectedFeature(feature.properties.id);
-            }}
-          >
-            <LandmarkMarker
-              landmarkType={props.landmarkType}
-              selected={isSelected}
-              size={props.size ?? 1}
-              color={props.color}
-              mapBearing={mapBearing}
-            />
-          </Marker>
-        );
-      })}
-
-      {/* Course-level Landmark markers */}
-      {courseLandmarks.map((feature) => {
-        const props = feature.properties;
-        const isSelected = selectedFeatureId === feature.properties.id;
-
-        return (
-          <Marker
-            key={feature.properties.id}
-            longitude={feature.geometry.coordinates[0]}
-            latitude={feature.geometry.coordinates[1]}
-            anchor="center"
-            rotationAlignment="viewport"
-            draggable
-            onDragEnd={(e) => {
-              if (!activeCourseId) return;
-              const newCoords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-              saveSnapshot(activeCourseId);
-              updateLandmarkFeatureGeometry(activeCourseId, feature.properties.id, newCoords);
-            }}
-            onClick={(e) => {
-              e.originalEvent.stopPropagation();
-              setSelectedFeature(feature.properties.id);
-            }}
-          >
-            <LandmarkMarker
-              landmarkType={props.landmarkType}
-              selected={isSelected}
-              size={props.size ?? 1}
-              color={props.color}
-              mapBearing={mapBearing}
-            />
           </Marker>
         );
       })}

@@ -1,10 +1,9 @@
 import type { Feature, Point, LineString, Polygon } from 'geojson';
 import type { TerrainType, MapBackgroundConfig } from './terrain';
-import type { LandmarkType } from './landmarks';
 
 // ============ CORE TYPES ============
 
-export type FeatureType = 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure' | 'landmark';
+export type FeatureType = 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure';
 
 // ============ FEATURE PROPERTIES ============
 
@@ -136,29 +135,6 @@ export interface PathFeatureProperties {
 
 export type PathFeature = Feature<LineString, PathFeatureProperties>;
 
-// Course-level landmark feature (not tied to a specific hole)
-export interface CourseLandmarkProperties {
-  id: string;
-  type: 'courseLandmark';
-  landmarkType: LandmarkType;
-  label?: string;
-  size?: number; // Scale factor (1 = default size)
-  rotation?: number; // Rotation in degrees
-  color?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type CourseLandmarkFeature = Feature<Point, CourseLandmarkProperties>;
-
-export interface LandmarkProperties extends BaseFeatureProperties {
-  type: 'landmark';
-  landmarkType: LandmarkType;
-  size?: number; // Scale factor (1 = default size)
-  rotation?: number; // Rotation in degrees
-}
-
 // ============ FEATURE DEFINITIONS ============
 
 export type TeeFeature = Feature<Point, TeeProperties>;
@@ -172,7 +148,6 @@ export type FairwayFeature = Feature<Polygon, FairwayProperties>;
 export type DropzoneAreaFeature = Feature<Polygon, DropzoneAreaProperties>;
 export type AnnotationFeature = Feature<Point, AnnotationProperties>;
 export type InfrastructureFeature = Feature<Polygon, InfrastructureProperties>;
-export type LandmarkFeature = Feature<Point, LandmarkProperties>;
 
 export type DiscGolfFeature =
   | TeeFeature
@@ -185,8 +160,7 @@ export type DiscGolfFeature =
   | OBLineFeature
   | FairwayFeature
   | AnnotationFeature
-  | InfrastructureFeature
-  | LandmarkFeature;
+  | InfrastructureFeature;
 
 // ============ HOLE ============
 
@@ -274,7 +248,6 @@ export interface Course {
   website?: string;
   terrainFeatures: TerrainFeature[]; // Course-level terrain polygons (not tied to holes)
   pathFeatures: PathFeature[]; // Course-level path lines (not tied to holes)
-  landmarkFeatures: CourseLandmarkFeature[]; // Course-level landmarks (not tied to holes)
   createdAt: string;
   updatedAt: string;
   version: number;
@@ -351,7 +324,6 @@ export function createEmptyCourse(name: string, coordinates: [number, number]): 
     layouts: [],
     terrainFeatures: [],
     pathFeatures: [],
-    landmarkFeatures: [],
     createdAt: now,
     updatedAt: now,
     version: 1,

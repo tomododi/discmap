@@ -52,7 +52,6 @@
     "annotation": "Annotation",
     "infrastructure": "Terrain",
     "terrain": "Terrain",
-    "landmark": "Landmark",
     "obLine": "OB Line",
     "path": "Path"
   },
@@ -132,7 +131,6 @@
     "style": "Style",
     "layers": "Layers",
     "properties": "Properties",
-    "landmarks": "Landmarks",
     "noFeatureSelected": "No feature selected",
     "clickToSelect": "Click on a feature to edit its properties",
     "teeName": "Tee Name",
@@ -171,7 +169,6 @@
     "dropzones": "Dropzones",
     "dropzoneAreas": "OB Areas",
     "mandatories": "Mandatories",
-    "landmarks": "Landmarks",
     "annotations": "Annotations",
     "paths": "Paths"
   },
@@ -192,7 +189,11 @@
     "importing": "Importing...",
     "invalidJson": "Invalid JSON file",
     "readError": "Could not read file",
-    "importError": "Failed to import course"
+    "importError": "Failed to import course",
+    "confirmTitle": "Import will switch to new course",
+    "confirmMessage": "You are currently editing \"{{name}}\". If you haven't saved it, download a backup first.",
+    "downloadCurrent": "Download current course ({{name}})",
+    "confirmImport": "Yes, Import"
   },
   "export": {
     "title": "Export Map",
@@ -334,52 +335,6 @@
     "gravel": "Gravel",
     "marsh": "Marsh / Wetland",
     "rocks": "Rocky Area"
-  },
-  "landmarks": {
-    "title": "Landmarks",
-    "hint": "Select a landmark and click on the map to place it.",
-    "clickToPlace": "Click on map to place",
-    "tipsTitle": "Tips:",
-    "tip1": "Landmarks are decorative elements",
-    "tip2": "Drag to reposition after placing",
-    "tip3": "Use scroll wheel to rotate (when selected)",
-    "changeType": "Change Landmark Type",
-    "size": "Size",
-    "rotation": "Rotation",
-    "customColor": "Custom Color",
-    "scrollToRotate": "Use scroll wheel to rotate when selected",
-    "categories": {
-      "amenities": "Amenities",
-      "nature": "Nature",
-      "signage": "Signage",
-      "hazards": "Hazards",
-      "structures": "Structures"
-    },
-    "types": {
-      "parking": "Parking",
-      "restroom": "Restroom",
-      "bench": "Bench",
-      "picnicTable": "Picnic Table",
-      "trashCan": "Trash Can",
-      "waterFountain": "Water Fountain",
-      "tree": "Tree",
-      "treeGroup": "Tree Group",
-      "bush": "Bush",
-      "flower": "Flowers",
-      "rock": "Rock",
-      "stump": "Tree Stump",
-      "infoSign": "Info Sign",
-      "holeSign": "Hole Sign",
-      "directionSign": "Direction Sign",
-      "warningSign": "Warning Sign",
-      "fence": "Fence Post",
-      "post": "Post/Pole",
-      "electricBox": "Electric Box",
-      "shelter": "Shelter/Pavilion",
-      "bridge": "Bridge",
-      "stairs": "Stairs",
-      "path": "Path Marker"
-    }
   },
   "languages": {
     "en": "English",

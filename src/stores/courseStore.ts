@@ -8,7 +8,6 @@ import type {
   TournamentLayout,
   TerrainFeature,
   PathFeature,
-  CourseLandmarkFeature,
 } from '../types/course';
 import { createEmptyHole as createHole, createEmptyCourse as createCourse } from '../types/course';
 import type { CourseSnapshot } from '../types/editor';
@@ -50,12 +49,6 @@ interface CourseActions {
   updatePathFeature: (courseId: string, featureId: string, updates: Partial<PathFeature['properties']>) => void;
   deletePathFeature: (courseId: string, featureId: string) => void;
   updatePathFeatureGeometry: (courseId: string, featureId: string, coordinates: unknown) => void;
-
-  // Landmark feature management (course-level)
-  addLandmarkFeature: (courseId: string, feature: CourseLandmarkFeature) => void;
-  updateLandmarkFeature: (courseId: string, featureId: string, updates: Partial<CourseLandmarkFeature['properties']>) => void;
-  deleteLandmarkFeature: (courseId: string, featureId: string) => void;
-  updateLandmarkFeatureGeometry: (courseId: string, featureId: string, coordinates: unknown) => void;
 
   // Style
   updateStyle: (courseId: string, style: Partial<CourseStyle>) => void;
@@ -311,53 +304,6 @@ export const useCourseStore = create<CourseStore>()(
       set((state) => {
         const course = state.courses[courseId];
         const feature = course?.pathFeatures?.find((f) => f.properties.id === featureId);
-        if (feature) {
-          (feature.geometry as { coordinates: unknown }).coordinates = coordinates;
-          feature.properties.updatedAt = new Date().toISOString();
-          course!.updatedAt = new Date().toISOString();
-        }
-      });
-    },
-
-    // Landmark feature management (course-level)
-    addLandmarkFeature: (courseId, feature) => {
-      set((state) => {
-        const course = state.courses[courseId];
-        if (course) {
-          if (!course.landmarkFeatures) {
-            course.landmarkFeatures = [];
-          }
-          course.landmarkFeatures.push(feature);
-          course.updatedAt = new Date().toISOString();
-        }
-      });
-    },
-
-    updateLandmarkFeature: (courseId, featureId, updates) => {
-      set((state) => {
-        const course = state.courses[courseId];
-        const feature = course?.landmarkFeatures?.find((f) => f.properties.id === featureId);
-        if (feature) {
-          Object.assign(feature.properties, updates, { updatedAt: new Date().toISOString() });
-          course!.updatedAt = new Date().toISOString();
-        }
-      });
-    },
-
-    deleteLandmarkFeature: (courseId, featureId) => {
-      set((state) => {
-        const course = state.courses[courseId];
-        if (course && course.landmarkFeatures) {
-          course.landmarkFeatures = course.landmarkFeatures.filter((f) => f.properties.id !== featureId);
-          course.updatedAt = new Date().toISOString();
-        }
-      });
-    },
-
-    updateLandmarkFeatureGeometry: (courseId, featureId, coordinates) => {
-      set((state) => {
-        const course = state.courses[courseId];
-        const feature = course?.landmarkFeatures?.find((f) => f.properties.id === featureId);
         if (feature) {
           (feature.geometry as { coordinates: unknown }).coordinates = coordinates;
           feature.properties.updatedAt = new Date().toISOString();
