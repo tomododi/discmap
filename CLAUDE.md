@@ -47,10 +47,10 @@ Key courseStore actions for feature manipulation:
 - `updateFeatureGeometry(courseId, holeId, featureId, coordinates)` - Update feature position/geometry
 - `deleteFeature(courseId, holeId, featureId)` - Remove feature
 
-Course-level features (terrain, paths, landmarks) have separate actions:
+Course-level features (terrain, paths, trees) have separate actions:
 - `addTerrainFeature/updateTerrainFeature/deleteTerrainFeature` - Course-level terrain polygons
 - `addPathFeature/updatePathFeature/deletePathFeature` - Course-level path lines
-- `addLandmarkFeature/updateLandmarkFeature/deleteLandmarkFeature` - Course-level landmarks
+- `addTreeFeature/updateTreeFeature/deleteTreeFeature` - Course-level tree markers
 
 ### Data Model Hierarchy
 
@@ -58,16 +58,16 @@ Course-level features (terrain, paths, landmarks) have separate actions:
 Course
 ├── id, name, location, style (CourseStyle)
 ├── holes[] (Hole)
-│   ├── id, number, par, distances (HoleDistances)
+│   ├── id, number, par
 │   └── features[] (DiscGolfFeature)
 ├── terrainFeatures[] (TerrainFeature) - Course-level polygons
 ├── pathFeatures[] (PathFeature) - Course-level lines
-├── landmarkFeatures[] (CourseLandmarkFeature) - Course-level points
+├── treeFeatures[] (TreeFeature) - Course-level tree markers
 └── layouts[] (TournamentLayout)
 ```
 
 **DiscGolfFeature** is a discriminated union based on `properties.type`:
-- Point features: `tee`, `basket`, `dropzone`, `mandatory`, `annotation`, `landmark`
+- Point features: `tee`, `basket`, `dropzone`, `mandatory`, `annotation`
 - Line features: `flightLine`, `obLine`
 - Polygon features: `obZone`, `fairway`, `dropzoneArea`, `infrastructure`
 
@@ -80,22 +80,21 @@ App.tsx
 ├── MapContainer (MapLibre + react-map-gl)
 │   ├── DrawControls (mapbox-gl-draw integration)
 │   └── FeatureLayers (renders all course features)
-│       └── markers/ (TeeMarker, BasketMarker, DropzoneMarker, MandatoryMarker, LandmarkMarker)
+│       └── markers/ (TeeMarker, BasketMarker, DropzoneMarker, MandatoryMarker, TreeMarker)
 ├── Toolbar (drawing tools, navigation, export button)
-│   └── ExportDialog (Radix UI Dialog for SVG export)
-└── Sidebar (collapsible, left/right position configurable)
+│   └── ExportDialog / ImportDialog
+└── Sidebar (collapsible)
     ├── HoleList (hole navigation)
     ├── HoleEditor (par, name, notes)
     ├── FeatureProperties (edit selected feature)
-    ├── LandmarkEditor (place decorative elements)
     ├── ColorSchemeEditor (course style colors)
     ├── TerrainEditor (default terrain for export)
-    └── LayerControls (12 layer visibility toggles)
+    └── LayerControls (13 layer visibility toggles)
 ```
 
 ### Map & Feature Rendering
 
-- Point features (tee, basket, dropzone, mandatory, landmarks) use custom SVG React components via `react-map-gl/Marker`
+- Point features (tee, basket, dropzone, mandatory, trees) use custom SVG React components via `react-map-gl/Marker`
 - Line/polygon features use MapLibre's `Source`/`Layer` for GeoJSON rendering
 - Feature selection flows through `editorStore.selectedFeatureId`
 - Layers are filtered by `editorStore.showLayers` visibility flags
@@ -104,16 +103,13 @@ App.tsx
 
 - Auto-save to IndexedDB every 5 seconds (configurable in settings)
 - Storage keys prefixed with `discmap_course_`
+- Active course ID persisted to localStorage (`discmap_activeCourseId`)
 - Load on mount, save on course change via `src/utils/storage.ts`
 - **JSON Import/Export**: Courses can be exported to JSON files and imported back
   - Export via `downloadCourseJSON(course)` - downloads `{course-name}.json`
   - Import via `importCourseFromJSON(json)` - generates new UUID to avoid conflicts
   - Validation via `validateCourseJSON(json)` - checks required fields
-- **Data Migration**: `migrateCourseStyle()` in storage.ts ensures older saved courses get new style properties from `DEFAULT_COURSE_STYLE`
-
-**Known Issues**:
-- After importing a new course, the `activeCourseId` is not persisted. On page refresh, `App.tsx` loads courses and picks the first one from `Object.keys(loadedCourses)`, which may not be the recently imported course. Consider persisting `activeCourseId` to localStorage or IndexedDB.
-- The import flow does not warn users that loading another JSON will replace their current working course. Consider adding a confirmation dialog before import if there are unsaved changes.
+- **Data Migration**: `migrateCourse()` in storage.ts ensures older saved courses get new style properties from `DEFAULT_COURSE_STYLE` and converts invalid tree types
 
 ## Key Patterns
 
@@ -124,17 +120,12 @@ App.tsx
 3. Add to `DiscGolfFeature` union
 4. Create marker component in `src/components/map/markers/`
 5. Add rendering logic to `FeatureLayers.tsx`
-6. Add layer visibility toggle to `LayerControls.tsx`
+6. Add layer visibility toggle to `LayerControls.tsx` and `LayerVisibility` in `src/types/editor.ts`
 7. Add SVG generator function in `src/utils/svgExport.ts`
 
-### Tee Position System
+### Tee Colors
 
-Three tee positions with distinct colors (configurable in CourseStyle):
-- Pro (default red): Professional/advanced
-- Amateur (default orange): Intermediate
-- Recreational (default green): Beginner
-
-Tee position is stored in `TeeProperties.position` and `FlightLineProperties.position`.
+Tees use configurable colors from `DEFAULT_TEE_COLORS` array (red, amber, green, blue, purple, pink). Each tee can have its own color, and flight lines inherit the color from their starting tee.
 
 ### Distance Calculation
 
@@ -142,8 +133,6 @@ Distance calculations use `@turf/turf` in `src/utils/geo.ts`:
 - `calculateDistance(from, to, units)` - Point-to-point distance
 - `calculateLineLength(coordinates, units)` - Flight line total length
 - Units can be 'meters' or 'feet' (from settingsStore)
-
-Hole distances are stored in `Hole.distances` with separate values for each tee position.
 
 ### SVG Export System
 
@@ -155,12 +144,6 @@ Export functionality in `src/utils/svgExport.ts`:
 
 Coordinate transformation: GeoJSON `[lng, lat]` → SVG viewport `[x, y]` using bounds calculation with aspect ratio preservation.
 
-Export options include:
-- Terrain & styled background (uses `CourseStyle.defaultTerrain`)
-- Compass rose and scale bar
-- Infrastructure zones
-- Title and legend
-
 ### Marker Sizing
 
 All markers use consistent core shape dimensions:
@@ -171,34 +154,27 @@ All markers use consistent core shape dimensions:
 | Basket | 32×44 | 32×44 | Anchored at bottom |
 | Dropzone | rect 32×20 | 36×24 | +padding for selection effects |
 | Mandatory | circle r=14 | 32×32 | Includes boundary line |
-| Landmarks | varies | dynamic | Uses `defaultSize * 1.5 * size` |
+| Trees | varies | dynamic | Uses `defaultSize * size` from TreePattern |
 
 SVG export functions use the same core dimensions with a `scale` parameter for zoom-level adjustments.
 
 ## Feature Details
 
 ### Draggable Markers
-All point features (tees, baskets, dropzones, mandatories, landmarks) are draggable on the map. When a tee or basket is dragged, associated flight lines automatically update their endpoints and recalculate distances.
+All point features (tees, baskets, dropzones, mandatories, trees) are draggable on the map. When a tee or basket is dragged, associated flight lines automatically update their endpoints and recalculate distances.
 
 ### Flight Lines
-- Auto-created from tee to basket when clicking "Draw Flight Line" (if both exist)
-- Colored by tee position (pro/amateur/recreational)
-- Distance label displayed at midpoint with tee position color
-- Click the distance label to select the flight line
+- Created by selecting a tee or dropzone, then clicking a basket
+- `FlightLineProperties.startFrom` indicates whether line starts from 'tee' or 'dropzone'
+- `FlightLineProperties.startFeatureId` links to the starting feature
+- Distance label displayed at midpoint
 - Endpoints update automatically when tees or baskets are moved
 
-### Flight Line Editing
-When a flight line is selected:
-- Drag vertices (circles) to reshape the line
-- Click the "+" buttons between vertices to add new nodes
-- Double-click intermediate vertices to remove them (endpoints cannot be removed)
-- Minimum 2 vertices required (start and end)
-
 ### Mandatory Markers
-- Rotation stored as angle in degrees (0-359, where 0 = right, 90 = down, 180 = left, 270 = up)
-- Scroll wheel rotates in 15-degree increments when marker is selected
-- Properties panel includes rotation slider and preset direction buttons
-- Boundary line extends from center in perpendicular direction
+- Two independent rotations: `rotation` (arrow direction) and `lineAngle` (boundary line direction)
+- Arrow rotation: 0 = right, 90 = down, 180 = left, 270 = up
+- Scroll wheel rotates arrow in 15-degree increments when marker is selected
+- Properties panel includes rotation controls and preset direction buttons
 
 ### Terrain System
 
@@ -210,24 +186,28 @@ Defined in `src/types/terrain.ts`:
 - **Water**: water
 - **Surface**: path, concrete, gravel, rocks
 
-Each terrain has:
-- SVG pattern generator with primary/secondary/accent colors
-- Default colors from `TERRAIN_PATTERNS`
-- Opacity and corner radius options
-
-**Infrastructure Features**: Polygon zones drawn on map with terrain type, exported with styled patterns.
+Each terrain has SVG pattern generator with primary/secondary/accent colors in `src/utils/svgPatterns.ts`.
 
 **Default Terrain**: Set in `CourseStyle.defaultTerrain`, used as background in SVG exports.
 
-### Landmark System
+### Tree System
 
-Landmarks are decorative point features. See `src/types/landmarks.ts` for the full type catalog (24 types across 5 categories). Each has `defaultSize`, `defaultColor`, and per-instance `size`, `rotation`, `color` overrides.
+Defined in `src/types/trees.ts`:
 
-Components: `LandmarkMarker.tsx` (React) and `landmarkSvg.ts` (export).
+**5 Tree Types** (deciduous: oak, maple, birch; conifer: pine, spruce)
+
+Each tree has:
+- `defaultSize` and `defaultColors` (primary, secondary, accent)
+- Per-instance `size`, `rotation`, `opacity`, `customColors` overrides
+
+Tree brush mode allows painting multiple trees with configurable density and size variation.
+
+Components: `TreeMarker.tsx` (React) and `treeSvg.ts` (SVG export).
 
 ### Layer Visibility
 
-12 toggleable layers stored in `editorStore.showLayers`. See `LayerControls.tsx` for the complete list.
+13 toggleable layers stored in `editorStore.showLayers`:
+infrastructure, trees, tees, baskets, flightLines, fairways, obZones, obLines, dropzoneAreas, dropzones, mandatories, annotations, paths
 
 ## Notes
 
@@ -235,9 +215,9 @@ Components: `LandmarkMarker.tsx` (React) and `landmarkSvg.ts` (export).
 - Coordinates are `[longitude, latitude]` (GeoJSON standard)
 - All marker colors are configurable via CourseStyle (in Style tab)
 - Feature creation flow: DrawControls handles mapbox-gl-draw events → creates DiscGolfFeature → adds to courseStore
-- Sidebar tabs have horizontal scroll for narrow screens
+- Onboarding system in `src/components/onboarding/` guides new users
 
-## Important Implementation Notes
+## Implementation Notes
 
 - Marker core shapes are **consistent** between React components (`src/components/map/markers/`) and SVG export (`src/utils/svgExport.ts`). React components add canvas padding for selection/hover effects; export functions use identical shape dimensions with a `scale` parameter.
 
@@ -245,4 +225,4 @@ Components: `LandmarkMarker.tsx` (React) and `landmarkSvg.ts` (export).
 
 - All terrain types are defined in `src/types/terrain.ts` with corresponding SVG pattern generators in `src/utils/svgPatterns.ts`.
 
-- All landmark types are defined in `src/types/landmarks.ts` with SVG generators in `src/utils/landmarkSvg.ts`.
+- All tree types are defined in `src/types/trees.ts` with SVG generators in `src/utils/treeSvg.ts`.

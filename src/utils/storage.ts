@@ -4,8 +4,25 @@ import { DEFAULT_COURSE_STYLE } from '../types/course';
 
 const STORAGE_KEY_PREFIX = 'discmap_course_';
 
+// Valid tree types (palm was removed)
+const VALID_TREE_TYPES = ['oak', 'maple', 'pine', 'spruce', 'birch'];
+
 // Migrate course to include new properties (style + course-level features)
 function migrateCourse(course: Course): Course {
+  // Migrate tree features - convert invalid tree types (like removed "palm") to "oak"
+  const migratedTreeFeatures = (course.treeFeatures ?? []).map((tree) => {
+    if (!VALID_TREE_TYPES.includes(tree.properties.treeType)) {
+      return {
+        ...tree,
+        properties: {
+          ...tree.properties,
+          treeType: 'oak' as const,
+        },
+      };
+    }
+    return tree;
+  });
+
   return {
     ...course,
     style: {
@@ -15,7 +32,7 @@ function migrateCourse(course: Course): Course {
     // Ensure course-level feature arrays exist
     terrainFeatures: course.terrainFeatures ?? [],
     pathFeatures: course.pathFeatures ?? [],
-    treeFeatures: course.treeFeatures ?? [],
+    treeFeatures: migratedTreeFeatures,
   };
 }
 
