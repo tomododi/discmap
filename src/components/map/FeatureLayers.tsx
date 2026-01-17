@@ -963,10 +963,6 @@ export function FeatureLayers() {
           rotationAlignment="viewport"
           draggable
           onDragEnd={(e) => handleDragEnd(feature.properties.id, feature.properties.holeId, e)}
-          onClick={(e) => {
-            e.originalEvent.stopPropagation();
-            setSelectedFeature(feature.properties.id);
-          }}
         >
           <MandatoryMarker
             rotation={feature.properties.rotation ?? 0}
@@ -974,6 +970,7 @@ export function FeatureLayers() {
             selected={selectedFeatureId === feature.properties.id}
             color={style.mandatoryColor}
             onRotate={(newRotation) => handleFeatureRotate(feature.properties.id, feature.properties.holeId, newRotation)}
+            onClick={() => setSelectedFeature(feature.properties.id)}
             mapBearing={mapBearing}
           />
         </Marker>

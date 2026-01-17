@@ -6,6 +6,7 @@ interface MandatoryMarkerProps {
   lineColor?: string; // Boundary line color (red default)
   scale?: number;
   onRotate?: (newRotation: number) => void;
+  onClick?: () => void; // Click handler for selection
   mapBearing?: number;
 }
 
@@ -32,19 +33,21 @@ export function MandatoryMarker({
   lineColor = defaultLineColor,
   scale = 1,
   onRotate,
+  onClick,
   mapBearing = 0,
 }: MandatoryMarkerProps) {
   const borderColor = darkenColor(color);
+  // Scale only affects the purple arrow, not the boundary line
   const s = scale;
 
-  // Base dimensions - slightly larger canvas for boundary line
-  const size = 48 * s;
-  const cx = 24 * s; // Center
-  const cy = 24 * s;
+  // Fixed canvas size for boundary line
+  const size = 64;
+  const cx = 32; // Center
+  const cy = 32;
 
-  // Fixed boundary line length (does not scale with zoom)
-  const boundaryLineLength = 20 * s;
-  const arrowheadSize = 6 * s;
+  // Fixed boundary line length with arrowhead
+  const boundaryLineLength = 24;
+  const arrowheadSize = 6;
 
   // Counter-rotate against map bearing
   const effectiveRotation = rotation - mapBearing;
@@ -62,8 +65,8 @@ export function MandatoryMarker({
   };
 
   // Calculate arrowhead points for boundary line
-  // Line goes from center outward in lineAngle direction
-  const lineRad = ((effectiveLineAngle + 90) * Math.PI) / 180;
+  // lineAngle is used directly (no offset) - 0=right, 90=down, 180=left, 270=up
+  const lineRad = (effectiveLineAngle * Math.PI) / 180;
   const lineEndX = cx + Math.cos(lineRad) * boundaryLineLength;
   const lineEndY = cy + Math.sin(lineRad) * boundaryLineLength;
 
@@ -78,31 +81,40 @@ export function MandatoryMarker({
   return (
     <div
       className={`
-        cursor-pointer transition-transform hover:scale-110
+        transition-transform
         ${selected ? 'scale-125' : ''}
       `}
-      onWheel={handleWheel}
-      title={selected ? 'Scroll to rotate arrow' : undefined}
+      style={{ pointerEvents: 'none' }}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none">
-        {/* Red boundary line with arrowhead - fixed length, points in boundary direction */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" style={{ overflow: 'visible' }}>
+        {/* Red boundary line with arrowhead - NOT clickable, fixed size */}
         <line
           x1={cx}
           y1={cy}
           x2={lineEndX}
           y2={lineEndY}
           stroke={lineColor}
-          strokeWidth={2.5 * s}
+          strokeWidth={2.5}
           strokeLinecap="round"
+          style={{ pointerEvents: 'none' }}
         />
-        {/* Arrowhead */}
+        {/* Arrowhead - NOT clickable */}
         <path
           d={`M${lineEndX},${lineEndY} L${arrow1X},${arrow1Y} L${arrow2X},${arrow2Y} Z`}
           fill={lineColor}
+          style={{ pointerEvents: 'none' }}
         />
 
-        {/* Purple direction arrow - shows which way to pass */}
-        <g transform={`rotate(${effectiveRotation} ${cx} ${cy})`}>
+        {/* Purple direction arrow - ONLY this is clickable, scales with zoom */}
+        <g
+          transform={`rotate(${effectiveRotation} ${cx} ${cy})`}
+          onWheel={handleWheel}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+          style={{ pointerEvents: 'auto' }}
+        >
           <path
             d={`
               M${cx - 10 * s} ${cy - 2 * s}
@@ -118,6 +130,7 @@ export function MandatoryMarker({
             stroke={selected ? '#3b82f6' : borderColor}
             strokeWidth={selected ? 2 * s : 1.5 * s}
             strokeLinejoin="round"
+            className="cursor-pointer hover:opacity-80"
           />
         </g>
       </svg>

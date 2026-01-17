@@ -482,16 +482,17 @@ function generateMandatorySVG(
   const borderColor = darkenColor(color);
   const s = scale;
 
-  // Larger canvas for the boundary line
-  const cx = 24 * s;
-  const cy = 24 * s;
+  // Canvas size matching React component
+  const cx = 32 * s;
+  const cy = 32 * s;
 
-  // Fixed boundary line length with arrowhead
-  const boundaryLineLength = 20 * s;
+  // Boundary line length with arrowhead
+  const boundaryLineLength = 24 * s;
   const arrowheadSize = 6 * s;
 
   // Calculate boundary line end point and arrowhead
-  const lineRad = ((lineAngle + 90) * Math.PI) / 180;
+  // lineAngle is used directly (no offset) - 0=right, 90=down, 180=left, 270=up
+  const lineRad = (lineAngle * Math.PI) / 180;
   const lineEndX = cx + Math.cos(lineRad) * boundaryLineLength;
   const lineEndY = cy + Math.sin(lineRad) * boundaryLineLength;
 
@@ -2018,7 +2019,7 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
         legendItems.push({
           type: 'Mando',
           render: (x, y) => `
-            <circle cx="${x + 6}" cy="${y - 2}" r="4" fill="${style.mandatoryColor}" />
+            <path d="M${x} ${y - 1} L${x + 6} ${y - 1} L${x + 6} ${y - 3} L${x + 10} ${y + 1} L${x + 6} ${y + 5} L${x + 6} ${y + 3} L${x} ${y + 3} Z" fill="${style.mandatoryColor}" stroke="${darkenColor(style.mandatoryColor)}" stroke-width="0.5" stroke-linejoin="round" />
             <text x="${x + 16}" y="${y + 2}" font-family="Arial, sans-serif" font-size="8" fill="#374151">Mando</text>
           `
         });
