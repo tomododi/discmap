@@ -157,6 +157,8 @@
     "opacity": "Opacity"
   },
   "layers": {
+    "showAllHoles": "Show all holes",
+    "showAllHolesHint": "Show features from all holes, not just the active one",
     "showAll": "Show All",
     "hideAll": "Hide All",
     "infrastructure": "Terrain / Infrastructure",
@@ -215,7 +217,15 @@
     "includeTerrain": "Styled background & terrain",
     "includeInfrastructure": "Infrastructure zones",
     "includeCompass": "Compass rose",
-    "includeScaleBar": "Scale bar"
+    "includeScaleBar": "Scale bar",
+    "teeSigns": "Tee Signs",
+    "teeSignsHint": "Generate individual tee signs for each hole as a ZIP file",
+    "includeNotes": "Include hole notes",
+    "includeRules": "Include local rules",
+    "includeCourseName": "Include course name",
+    "downloadZip": "Download ZIP",
+    "creatingZip": "Creating ZIP...",
+    "teeSignFormat": "Each tee sign is A4 portrait format (794×1123px)"
   },
   "settings": {
     "title": "Settings",

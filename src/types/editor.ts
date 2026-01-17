@@ -34,6 +34,7 @@ export interface EditorState {
   isDrawing: boolean;
   drawMode: DrawMode;
   showLayers: LayerVisibility;
+  showAllHoles: boolean;
   sidebarCollapsed: boolean;
   pendingFlightLine: PendingFlightLine | null;
   activeTerrainType: TerrainType;
@@ -69,6 +70,7 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
   isDrawing: false,
   drawMode: 'select',
   showLayers: { ...DEFAULT_LAYER_VISIBILITY },
+  showAllHoles: false,
   sidebarCollapsed: false,
   pendingFlightLine: null,
   activeTerrainType: 'forest',

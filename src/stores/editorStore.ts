@@ -14,6 +14,7 @@ interface EditorActions {
   setLayerVisibility: (layer: keyof LayerVisibility, visible: boolean) => void;
   toggleLayer: (layer: keyof LayerVisibility) => void;
   toggleAllLayers: (visible: boolean) => void;
+  setShowAllHoles: (show: boolean) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setPendingFlightLine: (pending: PendingFlightLine | null) => void;
@@ -82,6 +83,12 @@ export const useEditorStore = create<EditorStore>()(
         Object.keys(state.showLayers).forEach((key) => {
           state.showLayers[key as keyof LayerVisibility] = visible;
         });
+      });
+    },
+
+    setShowAllHoles: (show) => {
+      set((state) => {
+        state.showAllHoles = show;
       });
     },
 

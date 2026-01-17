@@ -47,6 +47,11 @@ Key courseStore actions for feature manipulation:
 - `updateFeatureGeometry(courseId, holeId, featureId, coordinates)` - Update feature position/geometry
 - `deleteFeature(courseId, holeId, featureId)` - Remove feature
 
+Course-level features (terrain, paths, landmarks) have separate actions:
+- `addTerrainFeature/updateTerrainFeature/deleteTerrainFeature` - Course-level terrain polygons
+- `addPathFeature/updatePathFeature/deletePathFeature` - Course-level path lines
+- `addLandmarkFeature/updateLandmarkFeature/deleteLandmarkFeature` - Course-level landmarks
+
 ### Data Model Hierarchy
 
 ```
@@ -55,6 +60,9 @@ Course
 ├── holes[] (Hole)
 │   ├── id, number, par, distances (HoleDistances)
 │   └── features[] (DiscGolfFeature)
+├── terrainFeatures[] (TerrainFeature) - Course-level polygons
+├── pathFeatures[] (PathFeature) - Course-level lines
+├── landmarkFeatures[] (CourseLandmarkFeature) - Course-level points
 └── layouts[] (TournamentLayout)
 ```
 
@@ -102,6 +110,10 @@ App.tsx
   - Import via `importCourseFromJSON(json)` - generates new UUID to avoid conflicts
   - Validation via `validateCourseJSON(json)` - checks required fields
 - **Data Migration**: `migrateCourseStyle()` in storage.ts ensures older saved courses get new style properties from `DEFAULT_COURSE_STYLE`
+
+**Known Issues**:
+- After importing a new course, the `activeCourseId` is not persisted. On page refresh, `App.tsx` loads courses and picks the first one from `Object.keys(loadedCourses)`, which may not be the recently imported course. Consider persisting `activeCourseId` to localStorage or IndexedDB.
+- The import flow does not warn users that loading another JSON will replace their current working course. Consider adding a confirmation dialog before import if there are unsaved changes.
 
 ## Key Patterns
 

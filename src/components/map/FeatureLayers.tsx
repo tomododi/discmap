@@ -15,6 +15,7 @@ import { calculateLineLength } from '../../utils/geo';
 export function FeatureLayers() {
   const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const activeHoleId = useEditorStore((s) => s.activeHoleId);
+  const showAllHoles = useEditorStore((s) => s.showAllHoles);
   const showLayers = useEditorStore((s) => s.showLayers);
   const selectedFeatureId = useEditorStore((s) => s.selectedFeatureId);
   const setSelectedFeature = useEditorStore((s) => s.setSelectedFeature);
@@ -503,7 +504,7 @@ export function FeatureLayers() {
   };
 
   // Get features from active hole or all holes
-  const holes = activeHoleId
+  const holes = (activeHoleId && !showAllHoles)
     ? course.holes.filter((h) => h.id === activeHoleId)
     : course.holes;
 

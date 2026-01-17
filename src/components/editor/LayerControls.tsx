@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Layers } from 'lucide-react';
 import { useEditorStore } from '../../stores';
 import type { LayerVisibility } from '../../types/editor';
 
@@ -43,6 +43,8 @@ export function LayerControls() {
   const showLayers = useEditorStore((s) => s.showLayers);
   const toggleLayer = useEditorStore((s) => s.toggleLayer);
   const toggleAllLayers = useEditorStore((s) => s.toggleAllLayers);
+  const showAllHoles = useEditorStore((s) => s.showAllHoles);
+  const setShowAllHoles = useEditorStore((s) => s.setShowAllHoles);
 
   const layers: { name: keyof LayerVisibility; labelKey: string; color: string }[] = [
     { name: 'infrastructure', labelKey: 'layers.infrastructure', color: '#16a34a' },
@@ -64,6 +66,38 @@ export function LayerControls() {
 
   return (
     <div className="p-3 space-y-2">
+      {/* Show all holes toggle */}
+      <button
+        onClick={() => setShowAllHoles(!showAllHoles)}
+        className={`
+          w-full flex items-center justify-between p-3 rounded-lg transition-colors mb-3
+          ${showAllHoles
+            ? 'bg-blue-50 border border-blue-200 hover:bg-blue-100'
+            : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'}
+        `}
+        title={t('layers.showAllHolesHint')}
+      >
+        <div className="flex items-center gap-3">
+          <Layers size={18} className={showAllHoles ? 'text-blue-600' : 'text-gray-400'} />
+          <span className={`text-sm font-medium ${showAllHoles ? 'text-blue-700' : 'text-gray-700'}`}>
+            {t('layers.showAllHoles')}
+          </span>
+        </div>
+        <div
+          className={`
+            w-10 h-5 rounded-full transition-colors relative
+            ${showAllHoles ? 'bg-blue-500' : 'bg-gray-300'}
+          `}
+        >
+          <div
+            className={`
+              absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform
+              ${showAllHoles ? 'translate-x-5' : 'translate-x-0.5'}
+            `}
+          />
+        </div>
+      </button>
+
       {/* Quick toggles */}
       <div className="flex gap-2 mb-4">
         <button

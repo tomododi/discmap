@@ -157,6 +157,8 @@
     "opacity": "Przezroczystość"
   },
   "layers": {
+    "showAllHoles": "Pokaż wszystkie dołki",
+    "showAllHolesHint": "Pokaż elementy ze wszystkich dołków, nie tylko aktywnego",
     "showAll": "Pokaż Wszystkie",
     "hideAll": "Ukryj Wszystkie",
     "infrastructure": "Teren / Infrastruktura",
@@ -215,7 +217,15 @@
     "includeTerrain": "Stylowe tło i teren",
     "includeInfrastructure": "Strefy infrastruktury",
     "includeCompass": "Róża kompasowa",
-    "includeScaleBar": "Skala"
+    "includeScaleBar": "Skala",
+    "teeSigns": "Teesigny",
+    "teeSignsHint": "Generuj indywidualne tablice startowe dla każdego dołka jako plik ZIP",
+    "includeNotes": "Zawrzyj notatki dołka",
+    "includeRules": "Zawrzyj lokalne zasady",
+    "includeCourseName": "Zawrzyj nazwę pola",
+    "downloadZip": "Pobierz ZIP",
+    "creatingZip": "Tworzenie ZIP...",
+    "teeSignFormat": "Każdy teesign ma format A4 pionowy (794×1123px)"
   },
   "settings": {
     "title": "Ustawienia",

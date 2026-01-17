@@ -401,7 +401,8 @@ function generateBasketSVG(
   y: number,
   holeNumber: number | undefined,
   style: CourseStyle,
-  scale: number = 1
+  scale: number = 1,
+  rotation: number = 0
 ): string {
   const topColor = style.basketTopColor;
   const bodyColor = style.basketBodyColor;
@@ -410,24 +411,33 @@ function generateBasketSVG(
   const topBorder = darkenColor(topColor);
   const bodyBorder = darkenColor(bodyColor);
 
-  // Offset to center from bottom anchor point
-  const offsetY = -44 * scale;
+  // Basket is drawn centered at origin, then translated to position
+  // rotation is applied around the basket's center
+  const s = scale;
+  const basketWidth = 32 * s;
+  const basketHeight = 44 * s;
+  const cx = basketWidth / 2;  // center x of basket
+  const cy = basketHeight / 2; // center y of basket
 
   return `
-    <g transform="translate(${x - 16 * scale}, ${y + offsetY})">
-      <!-- Pole -->
-      <rect x="${15 * scale}" y="${28 * scale}" width="${2 * scale}" height="${14 * scale}" fill="${poleColor}" />
-      <!-- Base -->
-      <ellipse cx="${16 * scale}" cy="${42 * scale}" rx="${6 * scale}" ry="${2 * scale}" fill="${poleColor}" />
-      <!-- Basket body -->
-      <path d="M${6 * scale} ${18 * scale} L${26 * scale} ${18 * scale} L${24 * scale} ${28 * scale} L${8 * scale} ${28 * scale} Z" fill="${bodyColor}" stroke="${bodyBorder}" stroke-width="${1.5 * scale}" />
-      <!-- Chains -->
-      <path d="M${8 * scale} ${10 * scale} L${8 * scale} ${18 * scale} M${12 * scale} ${8 * scale} L${12 * scale} ${18 * scale} M${16 * scale} ${6 * scale} L${16 * scale} ${18 * scale} M${20 * scale} ${8 * scale} L${20 * scale} ${18 * scale} M${24 * scale} ${10 * scale} L${24 * scale} ${18 * scale}" stroke="${chainColor}" stroke-width="${1.5 * scale}" stroke-linecap="round" />
-      <!-- Top band -->
-      <ellipse cx="${16 * scale}" cy="${6 * scale}" rx="${10 * scale}" ry="${3 * scale}" fill="${topColor}" stroke="${topBorder}" stroke-width="${1.5 * scale}" />
-      <!-- Inner ring -->
-      <ellipse cx="${16 * scale}" cy="${18 * scale}" rx="${8 * scale}" ry="${2 * scale}" fill="none" stroke="${bodyBorder}" stroke-width="${scale}" />
-      ${holeNumber ? `<text x="${16 * scale}" y="${9 * scale}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${8 * scale}" fill="#ffffff">${holeNumber}</text>` : ''}
+    <g transform="translate(${x}, ${y})">
+      <g transform="rotate(${rotation})">
+        <g transform="translate(${-cx}, ${-cy})">
+          <!-- Pole -->
+          <rect x="${15 * s}" y="${28 * s}" width="${2 * s}" height="${14 * s}" fill="${poleColor}" />
+          <!-- Base -->
+          <ellipse cx="${16 * s}" cy="${42 * s}" rx="${6 * s}" ry="${2 * s}" fill="${poleColor}" />
+          <!-- Basket body -->
+          <path d="M${6 * s} ${18 * s} L${26 * s} ${18 * s} L${24 * s} ${28 * s} L${8 * s} ${28 * s} Z" fill="${bodyColor}" stroke="${bodyBorder}" stroke-width="${1.5 * s}" />
+          <!-- Chains -->
+          <path d="M${8 * s} ${10 * s} L${8 * s} ${18 * s} M${12 * s} ${8 * s} L${12 * s} ${18 * s} M${16 * s} ${6 * s} L${16 * s} ${18 * s} M${20 * s} ${8 * s} L${20 * s} ${18 * s} M${24 * s} ${10 * s} L${24 * s} ${18 * s}" stroke="${chainColor}" stroke-width="${1.5 * s}" stroke-linecap="round" />
+          <!-- Top band -->
+          <ellipse cx="${16 * s}" cy="${6 * s}" rx="${10 * s}" ry="${3 * s}" fill="${topColor}" stroke="${topBorder}" stroke-width="${1.5 * s}" />
+          <!-- Inner ring -->
+          <ellipse cx="${16 * s}" cy="${18 * s}" rx="${8 * s}" ry="${2 * s}" fill="none" stroke="${bodyBorder}" stroke-width="${s}" />
+        </g>
+      </g>
+      ${holeNumber ? `<text x="0" y="${4 * s}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${8 * s}" fill="#ffffff">${holeNumber}</text>` : ''}
     </g>
   `;
 }
@@ -1605,6 +1615,582 @@ export function downloadSVG(svgContent: string, filename: string): void {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename.endsWith('.svg') ? filename : `${filename}.svg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============ TEE SIGN EXPORT ============
+
+export interface TeeSignOptions {
+  hole: Hole;
+  course: Course;
+  width?: number;      // default 794 (A4 portrait width)
+  height?: number;     // default 1123 (A4 portrait height)
+  units: 'meters' | 'feet';
+  includeNotes: boolean;
+  includeRules: boolean;
+  includeLegend: boolean;
+  includeCourseName: boolean;
+}
+
+interface TeeDistanceInfo {
+  teeName?: string;
+  color: string;
+  distance: number;
+  position?: string;
+}
+
+function getHoleDistances(
+  hole: Hole,
+  course: Course,
+  units: 'meters' | 'feet'
+): TeeDistanceInfo[] {
+  const basket = hole.features.find(f => f.properties.type === 'basket');
+  const tees = hole.features.filter(f => f.properties.type === 'tee');
+  const flightLines = hole.features.filter(f => f.properties.type === 'flightLine');
+
+  if (!basket || tees.length === 0) return [];
+
+  return tees.map(tee => {
+    const props = tee.properties as TeeProperties;
+
+    // Look for a flight line starting from this tee
+    const flightLine = flightLines.find(fl => {
+      const flProps = fl.properties as FlightLineProperties;
+      return flProps.startFeatureId === props.id;
+    });
+
+    let distance: number;
+
+    if (flightLine) {
+      // Calculate distance along the flight line
+      const coords = (flightLine.geometry as { coordinates: number[][] }).coordinates;
+      let totalDist = 0;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const dx = (coords[i + 1][0] - coords[i][0]) * 111320 * Math.cos((coords[i][1] + coords[i + 1][1]) / 2 * Math.PI / 180);
+        const dy = (coords[i + 1][1] - coords[i][1]) * 110540;
+        totalDist += Math.sqrt(dx * dx + dy * dy);
+      }
+      distance = totalDist;
+    } else {
+      // Calculate straight-line distance from tee to basket
+      const teeCoords = (tee.geometry as { coordinates: number[] }).coordinates;
+      const basketCoords = (basket.geometry as { coordinates: number[] }).coordinates;
+      const dx = (basketCoords[0] - teeCoords[0]) * 111320 * Math.cos((teeCoords[1] + basketCoords[1]) / 2 * Math.PI / 180);
+      const dy = (basketCoords[1] - teeCoords[1]) * 110540;
+      distance = Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Convert to feet if needed
+    if (units === 'feet') {
+      distance = distance * 3.28084;
+    }
+
+    return {
+      teeName: props.name,
+      color: props.color || course.style.defaultTeeColor,
+      distance: Math.round(distance),
+    };
+  });
+}
+
+function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
+  const avgCharWidth = fontSize * 0.5;
+  const maxCharsPerLine = Math.floor(maxWidth / avgCharWidth);
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
+      currentLine = (currentLine + ' ' + word).trim();
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  return lines;
+}
+
+export function generateTeeSignSVG(options: TeeSignOptions): string {
+  const {
+    hole,
+    course,
+    width = 794,
+    height = 1123,
+    units,
+    includeNotes,
+    includeRules,
+    includeLegend,
+    includeCourseName,
+  } = options;
+
+  const style = course.style;
+
+  // Layout dimensions
+  const headerHeight = 120;
+  const distanceHeight = 100;
+  const infoHeight = includeNotes || includeRules ? 200 : 80;
+  const mapHeight = height - headerHeight - distanceHeight - infoHeight - 40;
+  const padding = 30;
+
+  // Reset pattern IDs for consistent generation
+  resetPatternIds();
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+
+  // White background
+  svg += `<rect width="${width}" height="${height}" fill="white" />`;
+
+  // ============ HEADER SECTION ============
+  const headerY = 0;
+
+  // Header background
+  svg += `<rect x="0" y="${headerY}" width="${width}" height="${headerHeight}" fill="#1f2937" />`;
+
+  // Hole number box
+  const holeBoxSize = 80;
+  const holeBoxX = padding;
+  const holeBoxY = headerY + (headerHeight - holeBoxSize) / 2;
+  svg += `<rect x="${holeBoxX}" y="${holeBoxY}" width="${holeBoxSize}" height="${holeBoxSize}" rx="8" fill="#3b82f6" />`;
+  svg += `<text x="${holeBoxX + holeBoxSize / 2}" y="${holeBoxY + 45}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="42" fill="white">${hole.number}</text>`;
+  svg += `<text x="${holeBoxX + holeBoxSize / 2}" y="${holeBoxY + 70}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="rgba(255,255,255,0.8)">Par ${hole.par}</text>`;
+
+  // Hole name and course name
+  const textX = holeBoxX + holeBoxSize + 24;
+  if (hole.name) {
+    svg += `<text x="${textX}" y="${holeBoxY + 35}" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="white">${hole.name}</text>`;
+    if (includeCourseName) {
+      svg += `<text x="${textX}" y="${holeBoxY + 60}" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.7)">${course.name}</text>`;
+    }
+  } else {
+    svg += `<text x="${textX}" y="${holeBoxY + 40}" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="white">Hole ${hole.number}</text>`;
+    if (includeCourseName) {
+      svg += `<text x="${textX}" y="${holeBoxY + 65}" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.7)">${course.name}</text>`;
+    }
+  }
+
+  // ============ DISTANCE SECTION ============
+  const distanceY = headerHeight;
+  svg += `<rect x="0" y="${distanceY}" width="${width}" height="${distanceHeight}" fill="#f8fafc" />`;
+  svg += `<line x1="0" y1="${distanceY + distanceHeight}" x2="${width}" y2="${distanceY + distanceHeight}" stroke="#e2e8f0" stroke-width="1" />`;
+
+  const distances = getHoleDistances(hole, course, units);
+  const unitLabel = units === 'meters' ? 'm' : 'ft';
+
+  if (distances.length > 0) {
+    const distBoxWidth = 120;
+    const distBoxHeight = 60;
+    const distBoxGap = 16;
+    const totalDistWidth = distances.length * distBoxWidth + (distances.length - 1) * distBoxGap;
+    const startX = (width - totalDistWidth) / 2;
+    const distBoxY = distanceY + (distanceHeight - distBoxHeight) / 2;
+
+    distances.forEach((dist, index) => {
+      const boxX = startX + index * (distBoxWidth + distBoxGap);
+      svg += `<rect x="${boxX}" y="${distBoxY}" width="${distBoxWidth}" height="${distBoxHeight}" rx="8" fill="${dist.color}" />`;
+      svg += `<text x="${boxX + distBoxWidth / 2}" y="${distBoxY + 35}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="${getTextColor(dist.color)}">${dist.distance}${unitLabel}</text>`;
+      if (dist.teeName) {
+        svg += `<text x="${boxX + distBoxWidth / 2}" y="${distBoxY + 52}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="${getTextColor(dist.color)}" opacity="0.8">${dist.teeName}</text>`;
+      }
+    });
+  } else {
+    svg += `<text x="${width / 2}" y="${distanceY + distanceHeight / 2 + 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">No tees placed</text>`;
+  }
+
+  // ============ MAP SECTION ============
+  const mapY = distanceY + distanceHeight + 10;
+  const mapAreaWidth = width - 2 * padding;
+  const mapAreaHeight = mapHeight;
+
+  // Get hole features and calculate bounds
+  const holeFeatures = hole.features;
+  const bounds = calculateBounds(holeFeatures);
+
+  if (bounds) {
+    // Find tee and basket for rotation calculation
+    const firstTee = holeFeatures.find(f => f.properties.type === 'tee');
+    const basket = holeFeatures.find(f => f.properties.type === 'basket');
+
+    // Calculate map rotation so tee is at bottom pointing up
+    let mapRotation = 0;
+    if (firstTee && basket) {
+      const teeCoords = (firstTee.geometry as { coordinates: number[] }).coordinates;
+      const basketCoords = (basket.geometry as { coordinates: number[] }).coordinates;
+
+      // Calculate bearing from tee to basket in geographic coordinates
+      const dx = basketCoords[0] - teeCoords[0]; // longitude difference (+ = east)
+      const dy = basketCoords[1] - teeCoords[1]; // latitude difference (+ = north)
+
+      // Angle in geo coords: 0 = east, 90 = north, 180 = west, -90 = south
+      const geoAngleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+
+      // In SVG, Y is flipped, so svgAngle = -geoAngle
+      // SVG angle: 0 = right, 90 = down, -90 = up, 180 = left
+      // We want the tee-to-basket direction to point UP in SVG (-90° or 270°)
+      // After rotation: svgAngle + mapRotation should equal -90 (up)
+      // svgAngle = -geoAngle, so: -geoAngle + mapRotation = -90
+      // mapRotation = geoAngle - 90
+      mapRotation = geoAngleDeg - 90;
+    }
+
+    // Add padding to bounds, accounting for rotation expansion
+    // When content is rotated, corners extend beyond original bounds
+    // Maximum expansion at 45° is √2, formula: |cos(θ)| + |sin(θ)|
+    const rotationRad = Math.abs(mapRotation) * Math.PI / 180;
+    const rotationExpansion = Math.abs(Math.cos(rotationRad)) + Math.abs(Math.sin(rotationRad));
+    // Base padding 15%, increased by rotation factor (max ~41% at 45°)
+    const basePadding = 0.15;
+    const rotatedPadding = basePadding * rotationExpansion;
+    const lngPadding = (bounds.maxLng - bounds.minLng) * rotatedPadding;
+    const latPadding = (bounds.maxLat - bounds.minLat) * rotatedPadding;
+    bounds.minLng -= lngPadding;
+    bounds.maxLng += lngPadding;
+    bounds.minLat -= latPadding;
+    bounds.maxLat += latPadding;
+
+    const mapViewport: SVGViewport = {
+      width: mapAreaWidth,
+      height: mapAreaHeight,
+      padding: 20,
+      bounds,
+    };
+
+    // Map container with satellite-like base + terrain overlay
+    let defsContent = '';
+    const terrainPatternMap: Map<string, string> = new Map();
+
+    const defaultTerrainType = style.defaultTerrain ?? 'grass';
+    const defaultTerrainPattern = TERRAIN_PATTERNS[defaultTerrainType];
+    const bgColors = {
+      primary: defaultTerrainPattern.defaultColors.primary,
+      secondary: defaultTerrainPattern.defaultColors.secondary,
+      accent: defaultTerrainPattern.defaultColors.accent ?? defaultTerrainPattern.defaultColors.primary,
+    };
+    const { id: bgPatternId, svg: bgPatternSvg } = generateTerrainPattern(defaultTerrainType, bgColors, 1.5);
+    defsContent += bgPatternSvg;
+
+    // Create clip path for rounded rectangle
+    const clipId = `clip_${Date.now()}`;
+    defsContent += `<clipPath id="${clipId}"><rect width="${mapAreaWidth}" height="${mapAreaHeight}" rx="8" /></clipPath>`;
+
+    svg += `<defs>${defsContent}</defs>`;
+    svg += `<g transform="translate(${padding}, ${mapY})">`;
+
+    // Clip group for map content
+    svg += `<g clip-path="url(#${clipId})">`;
+
+    // Satellite-like dark base layer
+    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" fill="#1a2e1a" />`;
+
+    // Terrain pattern overlay with transparency (satellite showing through)
+    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" fill="url(#${bgPatternId})" opacity="0.7" />`;
+
+    // Calculate center for rotation
+    const centerX = mapAreaWidth / 2;
+    const centerY = mapAreaHeight / 2;
+
+    // Apply rotation to all map content
+    svg += `<g transform="rotate(${mapRotation} ${centerX} ${centerY})">`;
+
+    // Course-level terrain features
+    if (course.terrainFeatures && course.terrainFeatures.length > 0) {
+      course.terrainFeatures.forEach((f: TerrainFeature) => {
+        const props = f.properties as TerrainFeatureProperties;
+        const colors = getTerrainColors(props.terrainType, props.customColors);
+
+        // Generate pattern if not already created
+        const patternKey = props.terrainType + JSON.stringify(colors);
+        let patternId = terrainPatternMap.get(patternKey);
+        if (!patternId) {
+          const { id, svg: patternSvg } = generateTerrainPattern(props.terrainType, colors, 1);
+          patternId = id;
+          terrainPatternMap.set(patternKey, patternId);
+          // Inject pattern into defs
+          svg = svg.replace('</defs>', `${patternSvg}</defs>`);
+        }
+
+        const coords = (f.geometry as { coordinates: number[][][] }).coordinates[0];
+        const points = polygonCoordsToSVG(coords, mapViewport);
+        svg += `<polygon points="${points}" fill="url(#${patternId})" opacity="${props.opacity ?? 0.85}" />`;
+      });
+    }
+
+    // Course-level path features
+    if (course.pathFeatures && course.pathFeatures.length > 0) {
+      course.pathFeatures.forEach((f: PathFeature) => {
+        const props = f.properties;
+        const coords = (f.geometry as { coordinates: number[][] }).coordinates;
+        const path = lineStringToSVG(coords, mapViewport);
+        const color = props.color || '#a8a29e';
+        const strokeWidth = props.strokeWidth || 4;
+        const opacity = props.opacity ?? 1;
+        svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round" />`;
+      });
+    }
+
+    // Render hole features (same order as main export)
+    // Fairways
+    holeFeatures.filter(f => f.properties.type === 'fairway').forEach(f => {
+      const coords = (f.geometry as { coordinates: number[][][] }).coordinates[0];
+      const points = polygonCoordsToSVG(coords, mapViewport);
+      svg += `<polygon points="${points}" fill="${style.fairwayColor}" fill-opacity="${style.fairwayOpacity}" />`;
+    });
+
+    // Dropzone Areas
+    holeFeatures.filter(f => f.properties.type === 'dropzoneArea').forEach(f => {
+      const coords = (f.geometry as { coordinates: number[][][] }).coordinates[0];
+      const props = f.properties as DropzoneAreaProperties;
+      const fairwayInside = props.fairwayInside ?? true;
+      const pathD = lineStringToSVG(coords, mapViewport) + ' Z';
+      const greenOffset = fairwayInside ? -5 : 5;
+      const redOffset = fairwayInside ? 5 : -5;
+      svg += `<path d="${pathD}" fill="none" stroke="#22c55e" stroke-width="10" stroke-opacity="0.4" transform="translate(${greenOffset}, 0)" />`;
+      svg += `<path d="${pathD}" fill="none" stroke="#dc2626" stroke-width="10" stroke-opacity="0.4" transform="translate(${redOffset}, 0)" />`;
+      svg += `<path d="${pathD}" fill="none" stroke="${style.dropzoneAreaBorderColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+    });
+
+    // OB Lines
+    holeFeatures.filter(f => f.properties.type === 'obLine').forEach(f => {
+      const coords = (f.geometry as { coordinates: number[][] }).coordinates;
+      const props = f.properties as OBLineProperties;
+      const path = lineStringToSVG(coords, mapViewport);
+      const fairwaySide = props.fairwaySide || 'left';
+      const greenOffset = fairwaySide === 'left' ? -5 : 5;
+      const redOffset = fairwaySide === 'left' ? 5 : -5;
+      svg += `<path d="${path}" fill="none" stroke="#22c55e" stroke-width="10" stroke-opacity="0.4" transform="translate(${greenOffset}, 0)" stroke-linecap="round" />`;
+      svg += `<path d="${path}" fill="none" stroke="#dc2626" stroke-width="10" stroke-opacity="0.4" transform="translate(${redOffset}, 0)" stroke-linecap="round" />`;
+      svg += `<path d="${path}" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+    });
+
+    // OB Zones
+    holeFeatures.filter(f => f.properties.type === 'obZone').forEach(f => {
+      const coords = (f.geometry as { coordinates: number[][][] }).coordinates[0];
+      const points = polygonCoordsToSVG(coords, mapViewport);
+      svg += `<polygon points="${points}" fill="${style.obZoneColor}" fill-opacity="${style.obZoneOpacity}" stroke="${style.obZoneColor}" stroke-width="2" stroke-dasharray="8 4" />`;
+    });
+
+    // Flight Lines
+    holeFeatures.filter(f => f.properties.type === 'flightLine').forEach(f => {
+      const coords = (f.geometry as { coordinates: number[][] }).coordinates;
+      const props = f.properties as FlightLineProperties;
+      const path = lineStringToSVG(coords, mapViewport);
+      const lineColor = props.color || style.defaultFlightLineColor;
+      svg += `<path d="${path}" fill="none" stroke="${lineColor}" stroke-width="${style.flightLineWidth * 1.5}" stroke-dasharray="12 6" stroke-linecap="round" />`;
+    });
+
+    // Dropzones - adjust rotation to compensate for map rotation
+    holeFeatures.filter(f => f.properties.type === 'dropzone').forEach(f => {
+      const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
+      const props = f.properties as DropzoneProperties;
+      const dzColor = props.color || style.dropzoneColor;
+      const adjustedRotation = (props.rotation ?? 0) - mapRotation;
+      svg += generateDropzoneSVG(x, y, dzColor, 1.0, adjustedRotation);
+    });
+
+    // Mandatories - adjust rotation to compensate for map rotation
+    holeFeatures.filter(f => f.properties.type === 'mandatory').forEach(f => {
+      const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
+      const props = f.properties as { rotation: number; lineAngle?: number };
+      const adjustedRotation = (props.rotation ?? 0) - mapRotation;
+      const adjustedLineAngle = (props.lineAngle ?? 270) - mapRotation;
+      svg += generateMandatorySVG(x, y, adjustedRotation, style.mandatoryColor, 1.0, adjustedLineAngle);
+    });
+
+    // Landmarks - adjust rotation to compensate for map rotation
+    holeFeatures.filter(f => f.properties.type === 'landmark').forEach(f => {
+      const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
+      const props = f.properties as LandmarkProperties;
+      const adjustedRotation = (props.rotation ?? 0) - mapRotation;
+      svg += generateLandmarkSVG(props.landmarkType, x, y, {
+        size: props.size ?? 1,
+        rotation: adjustedRotation,
+        color: props.color,
+      });
+    });
+
+    // Tees - adjust rotation so tee points UP (270 in SVG space) after map rotation
+    holeFeatures.filter(f => f.properties.type === 'tee').forEach(f => {
+      const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
+      const props = f.properties as TeeProperties;
+      const teeColor = props.color || style.defaultTeeColor;
+      // Make tee always point up (270°) after map rotation is applied
+      const teePointsUp = 270 - mapRotation;
+      svg += generateTeeSVG(x, y, teeColor, hole.number, props.name, 1.0, teePointsUp);
+    });
+
+    // Baskets - counter-rotate so basket always appears upright
+    holeFeatures.filter(f => f.properties.type === 'basket').forEach(f => {
+      const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
+      svg += generateBasketSVG(x, y, hole.number, style, 1.0, -mapRotation);
+    });
+
+    svg += '</g>'; // End rotation group
+    svg += '</g>'; // End clip group
+
+    // Border for map area (outside clip so it's not clipped)
+    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" rx="8" fill="none" stroke="#374151" stroke-width="2" />`;
+
+    // Mini legend (optional) - outside rotation, always in corner
+    // Only show elements that are present on this hole
+    if (includeLegend) {
+      const hasOB = holeFeatures.some(f => f.properties.type === 'obZone' || f.properties.type === 'obLine' || f.properties.type === 'dropzoneArea');
+      const hasFairway = holeFeatures.some(f => f.properties.type === 'fairway');
+      const hasMandatory = holeFeatures.some(f => f.properties.type === 'mandatory');
+      const hasDropzone = holeFeatures.some(f => f.properties.type === 'dropzone');
+      const hasFlightLine = holeFeatures.some(f => f.properties.type === 'flightLine');
+
+      // Count how many items will be in legend
+      const legendItems: Array<{ type: string; render: (x: number, y: number) => string }> = [];
+
+      if (hasOB) {
+        legendItems.push({
+          type: 'OB',
+          render: (x, y) => `
+            <rect x="${x}" y="${y - 5}" width="12" height="8" rx="1" fill="${style.obZoneColor}" fill-opacity="0.5" />
+            <text x="${x + 16}" y="${y + 2}" font-family="Arial, sans-serif" font-size="8" fill="#374151">OB</text>
+          `
+        });
+      }
+
+      if (hasFairway) {
+        legendItems.push({
+          type: 'Fairway',
+          render: (x, y) => `
+            <rect x="${x}" y="${y - 5}" width="12" height="8" rx="1" fill="${style.fairwayColor}" fill-opacity="0.7" />
+            <text x="${x + 16}" y="${y + 2}" font-family="Arial, sans-serif" font-size="8" fill="#374151">Fairway</text>
+          `
+        });
+      }
+
+      if (hasMandatory) {
+        legendItems.push({
+          type: 'Mando',
+          render: (x, y) => `
+            <circle cx="${x + 6}" cy="${y - 2}" r="4" fill="${style.mandatoryColor}" />
+            <text x="${x + 16}" y="${y + 2}" font-family="Arial, sans-serif" font-size="8" fill="#374151">Mando</text>
+          `
+        });
+      }
+
+      if (hasDropzone) {
+        legendItems.push({
+          type: 'Dropzone',
+          render: (x, y) => `
+            <rect x="${x}" y="${y - 5}" width="12" height="8" rx="2" fill="${style.dropzoneColor}" />
+            <text x="${x + 16}" y="${y + 2}" font-family="Arial, sans-serif" font-size="8" fill="#374151">DZ</text>
+          `
+        });
+      }
+
+      if (hasFlightLine) {
+        legendItems.push({
+          type: 'Flight',
+          render: (x, y) => `
+            <line x1="${x}" y1="${y}" x2="${x + 12}" y2="${y}" stroke="${style.defaultFlightLineColor}" stroke-width="2" stroke-dasharray="3 2" />
+            <text x="${x + 16}" y="${y + 3}" font-family="Arial, sans-serif" font-size="8" fill="#374151">Flight</text>
+          `
+        });
+      }
+
+      // Only render legend if there are items to show
+      if (legendItems.length > 0) {
+        const legendPadding = 8;
+        const legendItemHeight = 16;
+        const legendWidth = 90;
+        const legendHeight = legendItems.length * legendItemHeight + legendPadding * 2 + 14;
+        const legendX = mapAreaWidth - legendWidth - 10;
+        const legendY = mapAreaHeight - legendHeight - 10;
+
+        svg += `<rect x="${legendX}" y="${legendY}" width="${legendWidth}" height="${legendHeight}" rx="4" fill="white" fill-opacity="0.95" stroke="#374151" stroke-width="1" />`;
+
+        let currentY = legendY + legendPadding + 10;
+        svg += `<text x="${legendX + legendPadding}" y="${currentY}" font-family="Arial, sans-serif" font-weight="bold" font-size="9" fill="#374151">Legend</text>`;
+
+        legendItems.forEach((item) => {
+          currentY += legendItemHeight;
+          svg += item.render(legendX + legendPadding, currentY);
+        });
+      }
+    }
+
+    svg += '</g>'; // End map group
+  } else {
+    // No features - show placeholder
+    svg += `<g transform="translate(${padding}, ${mapY})">`;
+    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" rx="8" fill="#1a2e1a" stroke="#374151" stroke-width="2" />`;
+    svg += `<text x="${mapAreaWidth / 2}" y="${mapAreaHeight / 2}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">No features on this hole</text>`;
+    svg += '</g>';
+  }
+
+  // ============ INFO SECTION ============
+  const infoY = mapY + mapAreaHeight + 20;
+  svg += `<line x1="${padding}" y1="${infoY}" x2="${width - padding}" y2="${infoY}" stroke="#e2e8f0" stroke-width="1" />`;
+
+  let currentInfoY = infoY + 24;
+  const maxInfoWidth = width - 2 * padding;
+
+  // Notes
+  if (includeNotes && hole.notes) {
+    svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="#374151">Notes:</text>`;
+    currentInfoY += 18;
+
+    const notesLines = wrapText(hole.notes, maxInfoWidth, 11);
+    const maxLines = 4;
+    notesLines.slice(0, maxLines).forEach((line, i) => {
+      const displayLine = i === maxLines - 1 && notesLines.length > maxLines
+        ? line.slice(0, -3) + '...'
+        : line;
+      svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-size="11" fill="#6b7280">${displayLine}</text>`;
+      currentInfoY += 16;
+    });
+    currentInfoY += 8;
+  }
+
+  // Rules
+  if (includeRules && hole.rules && hole.rules.length > 0) {
+    svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="#374151">Local Rules:</text>`;
+    currentInfoY += 18;
+
+    const maxRules = 4;
+    hole.rules.slice(0, maxRules).forEach((rule) => {
+      svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-size="11" fill="#6b7280">• ${rule}</text>`;
+      currentInfoY += 16;
+    });
+    if (hole.rules.length > maxRules) {
+      svg += `<text x="${padding}" y="${currentInfoY}" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">  + ${hole.rules.length - maxRules} more...</text>`;
+    }
+  }
+
+  svg += '</svg>';
+  return svg;
+}
+
+export async function generateTeeSignsZip(
+  course: Course,
+  options: Omit<TeeSignOptions, 'hole'>
+): Promise<Blob> {
+  const JSZip = (await import('jszip')).default;
+  const zip = new JSZip();
+
+  for (const hole of course.holes) {
+    const svg = generateTeeSignSVG({ ...options, hole });
+    const filename = `hole-${String(hole.number).padStart(2, '0')}.svg`;
+    zip.file(filename, svg);
+  }
+
+  return zip.generateAsync({ type: 'blob' });
+}
+
+export async function downloadZip(blob: Blob, filename: string): Promise<void> {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.endsWith('.zip') ? filename : `${filename}.zip`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
