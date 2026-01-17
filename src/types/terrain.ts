@@ -7,10 +7,7 @@ export type TerrainType =
   | 'forest'
   | 'water'
   | 'sand'
-  | 'concrete'
-  | 'gravel'
-  | 'marsh'
-  | 'rocks';
+  | 'concrete';
 
 export interface TerrainPattern {
   id: TerrainType;
@@ -83,36 +80,6 @@ export const TERRAIN_PATTERNS: Record<TerrainType, TerrainPattern> = {
       primary: '#9ca3af',
       secondary: '#6b7280',
       accent: '#d1d5db',
-    },
-  },
-  gravel: {
-    id: 'gravel',
-    name: 'Gravel',
-    category: 'surface',
-    defaultColors: {
-      primary: '#78716c',
-      secondary: '#57534e',
-      accent: '#a8a29e',
-    },
-  },
-  marsh: {
-    id: 'marsh',
-    name: 'Marsh / Wetland',
-    category: 'water',
-    defaultColors: {
-      primary: '#5eead4',
-      secondary: '#2dd4bf',
-      accent: '#99f6e4',
-    },
-  },
-  rocks: {
-    id: 'rocks',
-    name: 'Rocky Area',
-    category: 'surface',
-    defaultColors: {
-      primary: '#71717a',
-      secondary: '#52525b',
-      accent: '#a1a1aa',
     },
   },
 };

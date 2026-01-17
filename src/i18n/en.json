@@ -331,14 +331,15 @@
     "forest": "Forest / Trees",
     "waterPond": "Water / Pond",
     "sand": "Sand / Bunker",
-    "concrete": "Concrete / Paved",
-    "gravel": "Gravel",
-    "marsh": "Marsh / Wetland",
-    "rocks": "Rocky Area"
+    "concrete": "Concrete / Paved"
   },
   "languages": {
     "en": "English",
     "pl": "Polski"
+  },
+  "mapStyle": {
+    "satellite": "Satellite",
+    "outdoors": "Map"
   },
   "mobile": {
     "title": "Desktop Only",

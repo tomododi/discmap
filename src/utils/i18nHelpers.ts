@@ -10,9 +10,6 @@ const TERRAIN_TRANSLATION_KEYS: Record<TerrainType, string> = {
   water: 'terrain.waterPond',
   sand: 'terrain.sand',
   concrete: 'terrain.concrete',
-  gravel: 'terrain.gravel',
-  marsh: 'terrain.marsh',
-  rocks: 'terrain.rocks',
 };
 
 // Get translated terrain name

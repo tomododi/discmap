@@ -331,14 +331,15 @@
     "forest": "Las / Drzewa",
     "waterPond": "Woda / Staw",
     "sand": "Piasek / Bunker",
-    "concrete": "Beton / Asfalt",
-    "gravel": "Żwir",
-    "marsh": "Bagno / Mokradła",
-    "rocks": "Skały"
+    "concrete": "Beton / Asfalt"
   },
   "languages": {
     "en": "English",
     "pl": "Polski"
+  },
+  "mapStyle": {
+    "satellite": "Satelita",
+    "outdoors": "Mapa"
   },
   "mobile": {
     "title": "Tylko na Komputerze",

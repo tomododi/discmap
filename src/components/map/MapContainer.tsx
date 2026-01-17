@@ -1,10 +1,11 @@
 import { useCallback, useRef } from 'react';
 import Map, { NavigationControl, GeolocateControl } from 'react-map-gl/maplibre';
 import type { MapRef, ViewStateChangeEvent, MapLayerMouseEvent } from 'react-map-gl/maplibre';
-import { useMapStore, useSettingsStore, useCourseStore, useEditorStore } from '../../stores';
+import { useMapStore, useSettingsStore, useEditorStore } from '../../stores';
 import { createMapStyle } from '../../lib/mapbox';
 import { DrawControls } from './DrawControls';
 import { FeatureLayers } from './FeatureLayers';
+import { MapStyleSwitcher } from './MapStyleSwitcher';
 
 export function MapContainer() {
   const mapRef = useRef<MapRef>(null);
@@ -12,9 +13,7 @@ export function MapContainer() {
   const setViewState = useMapStore((s) => s.setViewState);
   const setIsMapLoaded = useMapStore((s) => s.setIsMapLoaded);
   const defaultMapStyle = useSettingsStore((s) => s.defaultMapStyle);
-  const activeCourseId = useEditorStore((s) => s.activeCourseId);
   const setSelectedFeature = useEditorStore((s) => s.setSelectedFeature);
-  const course = useCourseStore((s) => activeCourseId ? s.courses[activeCourseId] : null);
 
   const handleMove = useCallback(
     (evt: ViewStateChangeEvent) => {
@@ -92,8 +91,8 @@ export function MapContainer() {
     [setSelectedFeature]
   );
 
-  const styleType = course?.style.mapStyle || defaultMapStyle;
-  const mapStyle = createMapStyle(styleType);
+  // Use defaultMapStyle from settings - controlled by MapStyleSwitcher
+  const mapStyle = createMapStyle(defaultMapStyle);
 
   // Layers that should be clickable
   const interactiveLayerIds = ['flightLines', 'obZones', 'fairways', 'dropzoneAreas-fill', 'obLines'];
@@ -113,6 +112,7 @@ export function MapContainer() {
       >
         <NavigationControl position="bottom-right" />
         <GeolocateControl position="bottom-right" />
+        <MapStyleSwitcher />
 
         <FeatureLayers />
         <DrawControls mapRef={mapRef} />
