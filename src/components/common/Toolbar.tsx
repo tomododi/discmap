@@ -192,9 +192,9 @@ export function Toolbar() {
   const flightLineStatus = getFlightLineStatus();
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
-      {/* Main toolbar */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-2 py-1 flex items-center gap-1">
+    <div className="absolute top-4 left-[calc(50%+176px)] -translate-x-1/2 z-10 flex flex-col items-center max-w-[calc(100%-368px)]">
+      {/* Main toolbar - positioned to center over map area (right of 352px sidebar) */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-2 py-1 flex items-center gap-1 overflow-x-auto">
         {toolGroups.map((group, groupIndex) => (
           <div key={groupIndex} className="flex items-center gap-1">
             {group.tools.map((tool) => (

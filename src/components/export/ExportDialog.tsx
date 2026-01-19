@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Download, FileImage, Loader2, FileArchive, Map } from 'lucide-react';
+import { X, Download, FileImage, Loader2, FileArchive, Map, Upload, Trash2 } from 'lucide-react';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
 import { generateCourseSVG, downloadSVG, generateTeeSignsZip, downloadZip } from '../../utils/svgExport';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
@@ -46,6 +46,32 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
   const [includeRules, setIncludeRules] = useState(true);
   const [includeLegend, setIncludeLegend] = useState(true);
   const [includeCourseName, setIncludeCourseName] = useState(true);
+  const [logoDataUrl, setLogoDataUrl] = useState<string | undefined>(undefined);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return;
+    }
+
+    // Read file as data URL
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setLogoDataUrl(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoRemove = () => {
+    setLogoDataUrl(undefined);
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+  };
 
   const selectedTerrain = course?.style.defaultTerrain ?? 'grass';
 
@@ -71,6 +97,7 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
           includeRules,
           includeLegend,
           includeCourseName,
+          logoDataUrl,
         });
         await downloadZip(blob, `${courseName}_teesigns.zip`);
       } else {
@@ -213,6 +240,7 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
 
           {/* Tee Sign Options */}
           {exportType === 'teeSigns' && (
+            <>
             <section className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 {t('export.options')}
@@ -267,6 +295,58 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
                 {t('export.teeSignFormat', 'Each tee sign is A4 portrait format (794×1123px)')}
               </p>
             </section>
+
+            {/* Logo Upload Section */}
+            <section className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                {t('export.clubLogo', 'Club Logo')}
+              </label>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoSelect}
+                className="hidden"
+              />
+              {logoDataUrl ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <img
+                    src={logoDataUrl}
+                    alt="Club logo"
+                    className="h-12 w-auto max-w-[120px] object-contain"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700 truncate">
+                      {t('export.logoSelected', 'Logo selected')}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {t('export.logoHint', 'Will appear at the bottom of the sidebar')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleLogoRemove}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                    title={t('export.removeLogo', 'Remove logo')}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => logoInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-colors"
+                >
+                  <Upload size={18} />
+                  <span className="text-sm font-medium">
+                    {t('export.uploadLogo', 'Upload club logo')}
+                  </span>
+                </button>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
+                {t('export.logoOptional', 'Optional - PNG or JPG recommended')}
+              </p>
+            </section>
+            </>
           )}
 
           {/* Export Button */}

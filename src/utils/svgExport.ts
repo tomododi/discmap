@@ -1605,6 +1605,7 @@ export interface TeeSignOptions {
   includeRules: boolean;
   includeLegend: boolean;
   includeCourseName: boolean;
+  logoDataUrl?: string; // Base64 data URL for club logo (displayed at bottom of sidebar)
 }
 
 interface TeeDistanceInfo {
@@ -1709,85 +1710,184 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     includeRules,
     includeLegend,
     includeCourseName,
+    logoDataUrl,
   } = options;
 
   const style = course.style;
 
-  // Layout dimensions
-  const headerHeight = 120;
-  const distanceHeight = 100;
-  const infoHeight = includeNotes || includeRules ? 200 : 80;
-  const mapHeight = height - headerHeight - distanceHeight - infoHeight - 40;
-  const padding = 30;
+  // Layout dimensions - sidebar on left, map fills the rest
+  const sidebarWidth = 220;
+  const sidebarPadding = 20;
+  const mapAreaWidth = width - sidebarWidth; // Map fills entire right side
+  const mapAreaHeight = height; // Full height
+  const mapX = sidebarWidth;
+  const mapY = 0;
 
   // Reset pattern IDs for consistent generation
   resetPatternIds();
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
 
-  // White background
-  svg += `<rect width="${width}" height="${height}" fill="white" />`;
+  // ============ SIDEBAR SECTION (Left) ============
+  // Dark sidebar background
+  svg += `<rect x="0" y="0" width="${sidebarWidth}" height="${height}" fill="#1f2937" />`;
 
-  // ============ HEADER SECTION ============
-  const headerY = 0;
+  // Current Y position for stacking sidebar elements
+  let sidebarY = sidebarPadding;
 
-  // Header background
-  svg += `<rect x="0" y="${headerY}" width="${width}" height="${headerHeight}" fill="#1f2937" />`;
+  // Title: "Hole X"
+  svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 28}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="white">Hole ${hole.number}</text>`;
 
-  // Hole number box
-  const holeBoxSize = 80;
-  const holeBoxX = padding;
-  const holeBoxY = headerY + (headerHeight - holeBoxSize) / 2;
-  svg += `<rect x="${holeBoxX}" y="${holeBoxY}" width="${holeBoxSize}" height="${holeBoxSize}" rx="8" fill="#3b82f6" />`;
-  svg += `<text x="${holeBoxX + holeBoxSize / 2}" y="${holeBoxY + 45}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="42" fill="white">${hole.number}</text>`;
-  svg += `<text x="${holeBoxX + holeBoxSize / 2}" y="${holeBoxY + 70}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="rgba(255,255,255,0.8)">Par ${hole.par}</text>`;
-
-  // Hole name and course name
-  const textX = holeBoxX + holeBoxSize + 24;
-  if (hole.name) {
-    svg += `<text x="${textX}" y="${holeBoxY + 35}" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="white">${hole.name}</text>`;
-    if (includeCourseName) {
-      svg += `<text x="${textX}" y="${holeBoxY + 60}" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.7)">${course.name}</text>`;
-    }
+  // Subtitle: course name or hole name
+  if (includeCourseName) {
+    svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 52}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="rgba(255,255,255,0.7)">${escapeXml(course.name)}</text>`;
+    sidebarY += 70;
+  } else if (hole.name) {
+    svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 52}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="rgba(255,255,255,0.7)">${escapeXml(hole.name)}</text>`;
+    sidebarY += 70;
   } else {
-    svg += `<text x="${textX}" y="${holeBoxY + 40}" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="white">Hole ${hole.number}</text>`;
-    if (includeCourseName) {
-      svg += `<text x="${textX}" y="${holeBoxY + 65}" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.7)">${course.name}</text>`;
-    }
+    sidebarY += 50;
   }
 
-  // ============ DISTANCE SECTION ============
-  const distanceY = headerHeight;
-  svg += `<rect x="0" y="${distanceY}" width="${width}" height="${distanceHeight}" fill="#f8fafc" />`;
-  svg += `<line x1="0" y1="${distanceY + distanceHeight}" x2="${width}" y2="${distanceY + distanceHeight}" stroke="#e2e8f0" stroke-width="1" />`;
+  // Par box (blue)
+  const parBoxWidth = sidebarWidth - sidebarPadding * 2;
+  const parBoxHeight = 80;
+  const parBoxX = sidebarPadding;
+  svg += `<rect x="${parBoxX}" y="${sidebarY}" width="${parBoxWidth}" height="${parBoxHeight}" rx="8" fill="#3b82f6" />`;
+  svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 45}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="42" fill="white">${hole.number}</text>`;
+  svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 70}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="rgba(255,255,255,0.9)">Par ${hole.par}</text>`;
+  sidebarY += parBoxHeight + 16;
 
+  // Distance boxes - stacked vertically
   const distances = getHoleDistances(hole, course, units);
   const unitLabel = units === 'meters' ? 'm' : 'ft';
+  const distBoxWidth = sidebarWidth - sidebarPadding * 2;
+  const distBoxHeight = 50;
+  const distBoxGap = 8;
 
   if (distances.length > 0) {
-    const distBoxWidth = 120;
-    const distBoxHeight = 60;
-    const distBoxGap = 16;
-    const totalDistWidth = distances.length * distBoxWidth + (distances.length - 1) * distBoxGap;
-    const startX = (width - totalDistWidth) / 2;
-    const distBoxY = distanceY + (distanceHeight - distBoxHeight) / 2;
-
-    distances.forEach((dist, index) => {
-      const boxX = startX + index * (distBoxWidth + distBoxGap);
-      svg += `<rect x="${boxX}" y="${distBoxY}" width="${distBoxWidth}" height="${distBoxHeight}" rx="8" fill="${dist.color}" />`;
-      svg += `<text x="${boxX + distBoxWidth / 2}" y="${distBoxY + 35}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="${getTextColor(dist.color)}">${dist.distance}${unitLabel}</text>`;
+    distances.forEach((dist) => {
+      svg += `<rect x="${parBoxX}" y="${sidebarY}" width="${distBoxWidth}" height="${distBoxHeight}" rx="6" fill="${dist.color}" />`;
+      svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 32}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="${getTextColor(dist.color)}">${dist.distance}${unitLabel}</text>`;
       if (dist.teeName) {
-        svg += `<text x="${boxX + distBoxWidth / 2}" y="${distBoxY + 52}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="${getTextColor(dist.color)}" opacity="0.8">${dist.teeName}</text>`;
+        svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 46}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="${getTextColor(dist.color)}" opacity="0.85">${escapeXml(dist.teeName)}</text>`;
       }
+      sidebarY += distBoxHeight + distBoxGap;
     });
   } else {
-    svg += `<text x="${width / 2}" y="${distanceY + distanceHeight / 2 + 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">No tees placed</text>`;
+    svg += `<rect x="${parBoxX}" y="${sidebarY}" width="${distBoxWidth}" height="${distBoxHeight}" rx="6" fill="#4b5563" />`;
+    svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 30}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">No tees placed</text>`;
+    sidebarY += distBoxHeight + distBoxGap;
   }
 
-  // ============ MAP SECTION ============
-  const mapY = distanceY + distanceHeight + 10;
-  const mapAreaWidth = width - 2 * padding;
-  const mapAreaHeight = mapHeight;
+  // Collect notes for the info section
+  const allNotes: Array<{ label: string; note: string; color: string }> = [];
+
+  if (includeNotes && hole.notes) {
+    allNotes.push({ label: 'Hole Info', note: hole.notes, color: '#3b82f6' });
+  }
+
+  if (includeNotes) {
+    hole.features.forEach(f => {
+      const props = f.properties as { notes?: string; type: string; label?: string };
+      if (props.notes) {
+        let label = '';
+        let color = '#6b7280';
+        switch (props.type) {
+          case 'dropzone':
+            label = 'Dropzone';
+            color = style.dropzoneColor;
+            break;
+          case 'mandatory':
+            label = 'Mandatory';
+            color = style.mandatoryColor;
+            break;
+          case 'tee':
+            label = props.label || 'Tee';
+            color = (f.properties as TeeProperties).color || style.defaultTeeColor;
+            break;
+          case 'basket':
+            label = 'Basket';
+            color = style.basketTopColor;
+            break;
+          case 'obZone':
+          case 'obLine':
+            label = props.label || 'OB';
+            color = '#dc2626';
+            break;
+          default:
+            label = props.label || props.type;
+        }
+        allNotes.push({ label, note: props.notes, color });
+      }
+    });
+  }
+
+  if (includeRules && hole.rules && hole.rules.length > 0) {
+    hole.rules.forEach((rule, i) => {
+      allNotes.push({ label: `Rule ${i + 1}`, note: rule, color: '#059669' });
+    });
+  }
+
+  // Notes section in sidebar
+  if (allNotes.length > 0) {
+    sidebarY += 8;
+    // Section header
+    svg += `<text x="${sidebarPadding}" y="${sidebarY + 14}" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="rgba(255,255,255,0.6)">HOLE INFO</text>`;
+    sidebarY += 24;
+
+    // Divider line
+    svg += `<line x1="${sidebarPadding}" y1="${sidebarY}" x2="${sidebarWidth - sidebarPadding}" y2="${sidebarY}" stroke="rgba(255,255,255,0.2)" stroke-width="1" />`;
+    sidebarY += 12;
+
+    const maxNoteWidth = sidebarWidth - sidebarPadding * 2;
+    const lineHeight = 14;
+    const noteGap = 12;
+    const maxSidebarY = height - 40; // Leave space at bottom
+
+    allNotes.forEach((noteItem) => {
+      if (sidebarY > maxSidebarY - 40) return; // Stop if running out of space
+
+      // Note label with color indicator
+      svg += `<rect x="${sidebarPadding}" y="${sidebarY}" width="3" height="14" rx="1" fill="${noteItem.color}" />`;
+      svg += `<text x="${sidebarPadding + 8}" y="${sidebarY + 11}" font-family="Arial, sans-serif" font-weight="bold" font-size="10" fill="${noteItem.color}">${escapeXml(noteItem.label)}</text>`;
+      sidebarY += 16;
+
+      // Note text - wrap lines
+      const noteLines = wrapText(noteItem.note, maxNoteWidth, 11);
+      const maxLines = Math.min(3, Math.floor((maxSidebarY - sidebarY) / lineHeight));
+
+      noteLines.slice(0, maxLines).forEach((line, lineIndex) => {
+        const displayLine = lineIndex === maxLines - 1 && noteLines.length > maxLines
+          ? line.substring(0, Math.floor(line.length * 0.8)) + '...'
+          : line;
+        svg += `<text x="${sidebarPadding}" y="${sidebarY + 10}" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.85)">${escapeXml(displayLine)}</text>`;
+        sidebarY += lineHeight;
+      });
+
+      sidebarY += noteGap;
+    });
+  }
+
+  // Logo at bottom of sidebar
+  if (logoDataUrl) {
+    const logoMaxWidth = sidebarWidth - sidebarPadding * 2;
+    const logoMaxHeight = 80;
+    const logoY = height - sidebarPadding - logoMaxHeight;
+    const logoCenterX = sidebarWidth / 2;
+
+    // Render logo image centered at bottom of sidebar
+    svg += `<image
+      href="${logoDataUrl}"
+      x="${logoCenterX - logoMaxWidth / 2}"
+      y="${logoY}"
+      width="${logoMaxWidth}"
+      height="${logoMaxHeight}"
+      preserveAspectRatio="xMidYMid meet"
+    />`;
+  }
+
+  // ============ MAP SECTION (Right) ============
 
   // Get hole features and calculate bounds
   const holeFeatures = hole.features;
@@ -1858,10 +1958,10 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
 
     // Create clip path for rounded rectangle
     const clipId = `clip_${Date.now()}`;
-    defsContent += `<clipPath id="${clipId}"><rect width="${mapAreaWidth}" height="${mapAreaHeight}" rx="8" /></clipPath>`;
+    defsContent += `<clipPath id="${clipId}"><rect width="${mapAreaWidth}" height="${mapAreaHeight}" /></clipPath>`;
 
     svg += `<defs>${defsContent}</defs>`;
-    svg += `<g transform="translate(${padding}, ${mapY})">`;
+    svg += `<g transform="translate(${mapX}, ${mapY})">`;
 
     // Clip group for map content
     svg += `<g clip-path="url(#${clipId})">`;
@@ -2024,8 +2124,6 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     svg += '</g>'; // End rotation group
     svg += '</g>'; // End clip group
 
-    // Border for map area (outside clip so it's not clipped)
-    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" rx="8" fill="none" stroke="#374151" stroke-width="2" />`;
 
     // Mini legend (optional) - outside rotation, always in corner
     // Only show elements that are present on this hole
@@ -2113,135 +2211,10 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     svg += '</g>'; // End map group
   } else {
     // No features - show placeholder
-    svg += `<g transform="translate(${padding}, ${mapY})">`;
-    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" rx="8" fill="#1a2e1a" stroke="#374151" stroke-width="2" />`;
+    svg += `<g transform="translate(${mapX}, ${mapY})">`;
+    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" fill="#1a2e1a" />`;
     svg += `<text x="${mapAreaWidth / 2}" y="${mapAreaHeight / 2}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">No features on this hole</text>`;
     svg += '</g>';
-  }
-
-  // ============ INFO SECTION - 4 Column Grid Layout ============
-  const infoY = mapY + mapAreaHeight + 16;
-  const infoWidth = width - 2 * padding;
-  const columnGap = 12;
-  const columnCount = 4;
-  const columnWidth = (infoWidth - (columnCount - 1) * columnGap) / columnCount;
-  const cardPadding = 10;
-  const lineHeight = 15;
-  const headerFontSize = 11;
-  const bodyFontSize = 12;
-
-  // Collect ALL notes
-  const allNotes: Array<{ label: string; note: string; color: string; icon: string }> = [];
-
-  // Add hole notes first
-  if (includeNotes && hole.notes) {
-    allNotes.push({
-      label: 'Hole Info',
-      note: hole.notes,
-      color: '#3b82f6',
-      icon: 'ℹ'
-    });
-  }
-
-  // Collect ALL feature notes (no limit)
-  if (includeNotes) {
-    hole.features.forEach(f => {
-      const props = f.properties as { notes?: string; type: string; label?: string };
-      if (props.notes) {
-        let label = '';
-        let color = '#6b7280';
-        let icon = '•';
-        switch (props.type) {
-          case 'dropzone':
-            label = 'Dropzone';
-            color = style.dropzoneColor;
-            icon = '◎';
-            break;
-          case 'mandatory':
-            label = 'Mandatory';
-            color = style.mandatoryColor;
-            icon = '→';
-            break;
-          case 'tee':
-            label = props.label || 'Tee';
-            color = (f.properties as TeeProperties).color || style.defaultTeeColor;
-            icon = '▣';
-            break;
-          case 'basket':
-            label = 'Basket';
-            color = style.basketTopColor;
-            icon = '⛳';
-            break;
-          case 'obZone':
-          case 'obLine':
-            label = props.label || 'OB';
-            color = '#dc2626';
-            icon = '⚠';
-            break;
-          default:
-            label = props.label || props.type;
-            icon = '•';
-        }
-        allNotes.push({ label, note: props.notes, color, icon });
-      }
-    });
-  }
-
-  // Add rules as notes
-  if (includeRules && hole.rules && hole.rules.length > 0) {
-    hole.rules.forEach((rule, i) => {
-      allNotes.push({
-        label: `Rule ${i + 1}`,
-        note: rule,
-        color: '#059669',
-        icon: '✓'
-      });
-    });
-  }
-
-  // Only render info section if there are notes
-  if (allNotes.length > 0) {
-    // Section divider line
-    svg += `<line x1="${padding}" y1="${infoY}" x2="${width - padding}" y2="${infoY}" stroke="#e5e7eb" stroke-width="1" />`;
-
-    // Calculate card layout - distribute notes across 4 columns
-    const cardHeight = 70; // Fixed card height for consistency
-    const cardGap = 8;
-
-    // Render each note as a card in the grid
-    allNotes.forEach((noteItem, index) => {
-      const columnIndex = index % columnCount;
-      const rowIndex = Math.floor(index / columnCount);
-
-      const cardX = padding + columnIndex * (columnWidth + columnGap);
-      const cardY = infoY + 12 + rowIndex * (cardHeight + cardGap);
-
-      // Card background with subtle shadow effect
-      svg += `<rect x="${cardX + 1}" y="${cardY + 1}" width="${columnWidth}" height="${cardHeight}" rx="6" fill="#00000008" />`;
-      svg += `<rect x="${cardX}" y="${cardY}" width="${columnWidth}" height="${cardHeight}" rx="6" fill="#fafafa" stroke="#e5e7eb" stroke-width="1" />`;
-
-      // Color accent bar on left
-      svg += `<rect x="${cardX}" y="${cardY}" width="4" height="${cardHeight}" rx="2" fill="${noteItem.color}" />`;
-
-      // Header with icon and label
-      const headerY = cardY + cardPadding + headerFontSize;
-      svg += `<text x="${cardX + cardPadding + 4}" y="${headerY}" font-family="Arial, sans-serif" font-weight="bold" font-size="${headerFontSize}" fill="${noteItem.color}">${noteItem.label}</text>`;
-
-      // Note text - wrap to fit card width
-      const textStartY = headerY + lineHeight + 2;
-      const maxTextWidth = columnWidth - cardPadding * 2 - 4;
-      const noteLines = wrapText(noteItem.note, maxTextWidth, bodyFontSize);
-
-      // Show as many lines as fit (typically 2-3 lines per card)
-      const maxLinesInCard = 3;
-      noteLines.slice(0, maxLinesInCard).forEach((line, lineIndex) => {
-        const lineY = textStartY + lineIndex * lineHeight;
-        const displayLine = lineIndex === maxLinesInCard - 1 && noteLines.length > maxLinesInCard
-          ? line.substring(0, Math.floor(line.length * 0.85)) + '...'
-          : line;
-        svg += `<text x="${cardX + cardPadding + 4}" y="${lineY}" font-family="Arial, sans-serif" font-size="${bodyFontSize}" fill="#374151">${escapeXml(displayLine)}</text>`;
-      });
-    });
   }
 
   svg += '</svg>';
