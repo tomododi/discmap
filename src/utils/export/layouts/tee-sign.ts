@@ -1,4 +1,4 @@
-import type { Course, Hole, TeeProperties, FlightLineProperties, DropzoneProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature } from '../../../types/course';
+import type { Course, Hole, TeeProperties, FlightLineProperties, DropzoneProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature, MandatoryProperties } from '../../../types/course';
 import { TERRAIN_PATTERNS, getTerrainColors } from '../../../types/terrain';
 import type { TreeType } from '../../../types/trees';
 import { TREE_PATTERNS, getTreeImagePath } from '../../../types/trees';
@@ -112,54 +112,42 @@ export function escapeXml(text: string): string {
     .replace(/'/g, '&apos;');
 }
 
-// Seeded random number generator for consistent blob shapes
-function seededRandom(seed: number): () => number {
-  return function() {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    return seed / 0x7fffffff;
-  };
-}
+// Sole/insole shape - normalized points (0-1 range)
+const SOLE_SHAPE: Array<[number, number]> = [
+  [0.184, 0.504], [0.132, 0.467], [0.083, 0.431], [0.039, 0.394], [0.013, 0.357],
+  [0.009, 0.321], [0.013, 0.284], [0.018, 0.247], [0.031, 0.21], [0.048, 0.174],
+  [0.07, 0.137], [0.101, 0.1], [0.145, 0.063], [0.211, 0.027], [0.307, 0.005],
+  [0.404, 0.0], [0.5, 0.008], [0.596, 0.028], [0.689, 0.06], [0.768, 0.097],
+  [0.825, 0.134], [0.877, 0.17], [0.917, 0.207], [0.952, 0.244], [0.974, 0.28],
+  [0.991, 0.317], [1.0, 0.354], [1.0, 0.391], [0.987, 0.427], [0.969, 0.464],
+  [0.943, 0.501], [0.917, 0.538], [0.89, 0.574], [0.873, 0.611], [0.855, 0.648],
+  [0.846, 0.684], [0.838, 0.721], [0.825, 0.758], [0.811, 0.795], [0.794, 0.831],
+  [0.772, 0.868], [0.737, 0.905], [0.684, 0.942], [0.592, 0.975], [0.496, 0.995],
+  [0.399, 1.0], [0.303, 0.997], [0.206, 0.987], [0.11, 0.958], [0.048, 0.922],
+  [0.013, 0.885], [0.0, 0.848], [0.004, 0.811], [0.026, 0.773], [0.057, 0.736],
+  [0.092, 0.703], [0.145, 0.663], [0.184, 0.629], [0.219, 0.591], [0.228, 0.554],
+  [0.202, 0.518]
+];
 
-// Generate organic blob path that contains a rectangular area
+// Generate blob path from sole shape - scales to fit area
 function generateOrganicBlobPath(
   cx: number,
   cy: number,
   width: number,
   height: number,
-  seed: number = 42
+  _seed: number = 42
 ): string {
-  const random = seededRandom(seed);
+  const halfW = width / 2;
+  const halfH = height / 2;
 
-  // Base radii from center
-  const rx = width / 2;
-  const ry = height / 2;
+  // Scale and position the sole shape points
+  const points = SOLE_SHAPE.map(([nx, ny]) => ({
+    x: cx - halfW + nx * width,
+    y: cy - halfH + ny * height
+  }));
 
-  // Number of control points around the blob
-  const numPoints = 12;
-  const points: Array<{ x: number; y: number }> = [];
-
-  // Generate points around an ellipse with organic variation
-  for (let i = 0; i < numPoints; i++) {
-    const angle = (i / numPoints) * Math.PI * 2 - Math.PI / 2; // Start from top
-
-    // Add variation to the radius (reduced variation for better space utilization)
-    const radiusVariation = 0.92 + random() * 0.16;
-
-    // Use different base radius for x and y to create ellipse
-    const baseRx = rx * radiusVariation;
-    const baseRy = ry * radiusVariation;
-
-    // Add slight angle variation
-    const angleVariation = (random() - 0.5) * 0.1;
-    const adjustedAngle = angle + angleVariation;
-
-    points.push({
-      x: cx + baseRx * Math.cos(adjustedAngle),
-      y: cy + baseRy * Math.sin(adjustedAngle),
-    });
-  }
-
-  // Build smooth bezier path through points
+  // Build smooth bezier path through points for flowing curves
+  const numPoints = points.length;
   let path = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
 
   for (let i = 0; i < numPoints; i++) {
@@ -168,8 +156,8 @@ function generateOrganicBlobPath(
     const p2 = points[(i + 1) % numPoints];
     const p3 = points[(i + 2) % numPoints];
 
-    // Calculate control points for smooth curve
-    const tension = 0.3;
+    // Catmull-Rom to Bezier conversion for smooth curves
+    const tension = 0.4;
     const cp1x = p1.x + (p2.x - p0.x) * tension;
     const cp1y = p1.y + (p2.y - p0.y) * tension;
     const cp2x = p2.x - (p3.x - p1.x) * tension;
@@ -221,6 +209,7 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     width = 794,
     height = 1123,
     units,
+    includeNotes,
     includeLegend,
     logoDataUrl,
   } = options;
@@ -291,10 +280,73 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
   if (distances.length > 0) {
     const mainDistance = distances[0];
     svg += `<text x="${infoX}" y="${infoY}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="36" fill="#1f2937">${mainDistance.distance} ${unitLabel}</text>`;
+    infoY += 50;
   }
 
   // Get hole features
   const holeFeatures = hole.features || [];
+
+  // ============ NOTES FROM FEATURES ============
+  if (includeNotes) {
+    const notes: string[] = [];
+
+    // Mandatories
+    const mandatories = holeFeatures.filter(f => f.properties.type === 'mandatory');
+    if (mandatories.length > 0) {
+      mandatories.forEach((m, idx) => {
+        const props = m.properties as MandatoryProperties;
+        const rotation = props.rotation ?? 0;
+        // Convert rotation to direction
+        let direction = '';
+        if (rotation >= 315 || rotation < 45) direction = '→';
+        else if (rotation >= 45 && rotation < 135) direction = '↓';
+        else if (rotation >= 135 && rotation < 225) direction = '←';
+        else direction = '↑';
+        const label = mandatories.length > 1 ? `Mando ${idx + 1}: ${direction}` : `Mando: ${direction}`;
+        notes.push(label);
+      });
+    }
+
+    // Dropzones
+    const dropzones = holeFeatures.filter(f => f.properties.type === 'dropzone');
+    if (dropzones.length > 0) {
+      notes.push(`Dropzone${dropzones.length > 1 ? 's' : ''}: ${dropzones.length}`);
+    }
+
+    // OB zones/lines
+    const obZones = holeFeatures.filter(f => f.properties.type === 'obZone');
+    const obLines = holeFeatures.filter(f => f.properties.type === 'obLine');
+    if (obZones.length > 0 || obLines.length > 0) {
+      notes.push('OB zaznaczone na mapie');
+    }
+
+    // Hole notes
+    if (hole.notes) {
+      notes.push(hole.notes);
+    }
+
+    // Hole rules
+    if (hole.rules && hole.rules.length > 0) {
+      hole.rules.forEach(rule => notes.push(rule));
+    }
+
+    // Render notes
+    if (notes.length > 0) {
+      infoY += 10;
+      const noteFontSize = 12;
+      const noteLineHeight = 16;
+      const maxNoteWidth = infoAreaWidth - 20;
+
+      notes.forEach(note => {
+        const wrappedLines = wrapText(note, maxNoteWidth, noteFontSize);
+        wrappedLines.forEach(line => {
+          svg += `<text x="${infoX}" y="${infoY}" font-family="Arial, sans-serif" font-size="${noteFontSize}" fill="#4b5563">${escapeXml(line)}</text>`;
+          infoY += noteLineHeight;
+        });
+        infoY += 4; // Space between notes
+      });
+    }
+  }
   const bounds = calculateBounds(holeFeatures);
 
   if (bounds) {
