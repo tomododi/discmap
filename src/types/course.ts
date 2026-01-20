@@ -2,6 +2,9 @@ import type { Feature, Point, LineString, Polygon } from 'geojson';
 import type { TerrainType, MapBackgroundConfig } from './terrain';
 import type { TreeFeature } from './trees';
 
+// Re-export TreeFeature for convenience
+export type { TreeFeature } from './trees';
+
 // ============ CORE TYPES ============
 
 export type FeatureType = 'tee' | 'basket' | 'dropzone' | 'dropzoneArea' | 'mandatory' | 'flightLine' | 'obZone' | 'obLine' | 'fairway' | 'annotation' | 'infrastructure';
