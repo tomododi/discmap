@@ -55,7 +55,7 @@ export async function initTreeImageCache(): Promise<Map<TreeType, string>> {
 }
 
 // Get cached base64 image (returns empty string if not cached)
-function getCachedTreeImage(treeType: TreeType): string {
+export function getCachedTreeImage(treeType: TreeType): string {
   return treeImageCache?.get(treeType) || '';
 }
 

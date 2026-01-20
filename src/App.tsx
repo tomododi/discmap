@@ -9,6 +9,7 @@ import { useCourseStore, useEditorStore, useSettingsStore } from './stores';
 import { loadAllCourses, saveCourse } from './utils/storage';
 import { createEmptyCourse } from './types/course';
 import { initTreeImageCache } from './utils/treeSvg';
+import { initGrassImageCache, initHighgrassImageCache } from './utils/svgPatterns';
 
 function App() {
   const { i18n } = useTranslation();
@@ -28,8 +29,10 @@ function App() {
 
   // Load courses from IndexedDB on mount
   useEffect(() => {
-    // Initialize tree image cache for SVG exports
+    // Initialize image caches for SVG exports
     initTreeImageCache();
+    initGrassImageCache();
+    initHighgrassImageCache();
 
     loadAllCourses().then((loadedCourses) => {
       if (Object.keys(loadedCourses).length > 0) {

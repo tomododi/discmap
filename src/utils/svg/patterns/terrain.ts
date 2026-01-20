@@ -7,9 +7,89 @@ interface PatternColors {
   accent: string;
 }
 
-// Grass tile - using external file for better quality and faster loading
+// Grass tiles - using cached base64 for embedded SVGs
 const GRASS_TILE_SIZE = 128;
-const GRASS_IMAGE_PATH = 'grass.jpg';
+const GRASS_IMAGE_PATH = 'grass2.jpg';
+const HIGHGRASS_IMAGE_PATH = 'highgrass.jpg';
+
+// Module-level cache for grass images base64
+let grassImageCache: string | null = null;
+let grassCachePromise: Promise<string> | null = null;
+let highgrassImageCache: string | null = null;
+let highgrassCachePromise: Promise<string> | null = null;
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Initialize grass image cache - call this early in app lifecycle
+export async function initGrassImageCache(): Promise<string> {
+  if (grassImageCache) {
+    return grassImageCache;
+  }
+
+  if (grassCachePromise) {
+    return grassCachePromise;
+  }
+
+  grassCachePromise = (async () => {
+    try {
+      const response = await fetch(`/${GRASS_IMAGE_PATH}`);
+      const blob = await response.blob();
+      const base64 = await blobToBase64(blob);
+      grassImageCache = base64;
+      return base64;
+    } catch {
+      console.warn(`Failed to load grass image: ${GRASS_IMAGE_PATH}`);
+      grassImageCache = '';
+      return '';
+    }
+  })();
+
+  return grassCachePromise;
+}
+
+// Get cached base64 grass image (returns empty string if not cached)
+export function getCachedGrassImage(): string {
+  return grassImageCache || '';
+}
+
+// Initialize highgrass image cache
+export async function initHighgrassImageCache(): Promise<string> {
+  if (highgrassImageCache) {
+    return highgrassImageCache;
+  }
+
+  if (highgrassCachePromise) {
+    return highgrassCachePromise;
+  }
+
+  highgrassCachePromise = (async () => {
+    try {
+      const response = await fetch(`/${HIGHGRASS_IMAGE_PATH}`);
+      const blob = await response.blob();
+      const base64 = await blobToBase64(blob);
+      highgrassImageCache = base64;
+      return base64;
+    } catch {
+      console.warn(`Failed to load highgrass image: ${HIGHGRASS_IMAGE_PATH}`);
+      highgrassImageCache = '';
+      return '';
+    }
+  })();
+
+  return highgrassCachePromise;
+}
+
+// Get cached base64 highgrass image
+export function getCachedHighgrassImage(): string {
+  return highgrassImageCache || '';
+}
 
 // ============ GRASS PATTERN - Lush Lawn ============
 
@@ -455,10 +535,12 @@ export function generateGrassImagePattern(
   // Clamp tile size to reasonable range (min 30px, max 800px)
   const size = Math.round(Math.max(30, Math.min(800, tileSizePixels)));
 
-  // Use external grass.jpg file - must be in same directory as exported SVG
+  // Use cached base64 image, fallback to external path
+  const imageHref = getCachedGrassImage() || GRASS_IMAGE_PATH;
+
   return `
     <pattern id="${id}" patternUnits="userSpaceOnUse" width="${size}" height="${size}" viewBox="0 0 ${GRASS_TILE_SIZE} ${GRASS_TILE_SIZE}">
-      <image width="${GRASS_TILE_SIZE}" height="${GRASS_TILE_SIZE}" href="${GRASS_IMAGE_PATH}" />
+      <image width="${GRASS_TILE_SIZE}" height="${GRASS_TILE_SIZE}" href="${imageHref}" />
     </pattern>
   `;
 }
@@ -466,14 +548,43 @@ export function generateGrassImagePattern(
 export function generateGrassImageBackground(
   id: string,
   metersPerPixel: number,
-  metersPerTile: number = 5
+  metersPerTile: number = 10
 ): { id: string; svg: string } {
-  // Calculate tile size in pixels: 5 meters / metersPerPixel
+  // Calculate tile size in pixels (default 10 meters per tile for less repetition)
   const tileSizePixels = metersPerTile / metersPerPixel;
 
   return {
     id,
     svg: generateGrassImagePattern(id, tileSizePixels)
+  };
+}
+
+// ============ HIGHGRASS IMAGE PATTERN GENERATOR ============
+
+export function generateHighgrassImagePattern(
+  id: string,
+  tileSizePixels: number
+): string {
+  const size = Math.round(Math.max(30, Math.min(800, tileSizePixels)));
+  const imageHref = getCachedHighgrassImage() || HIGHGRASS_IMAGE_PATH;
+
+  return `
+    <pattern id="${id}" patternUnits="userSpaceOnUse" width="${size}" height="${size}" viewBox="0 0 ${GRASS_TILE_SIZE} ${GRASS_TILE_SIZE}">
+      <image width="${GRASS_TILE_SIZE}" height="${GRASS_TILE_SIZE}" href="${imageHref}" />
+    </pattern>
+  `;
+}
+
+export function generateHighgrassImageBackground(
+  id: string,
+  metersPerPixel: number,
+  metersPerTile: number = 10
+): { id: string; svg: string } {
+  const tileSizePixels = metersPerTile / metersPerPixel;
+
+  return {
+    id,
+    svg: generateHighgrassImagePattern(id, tileSizePixels)
   };
 }
 

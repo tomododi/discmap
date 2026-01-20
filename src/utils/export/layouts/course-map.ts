@@ -1,10 +1,10 @@
 import type { Course, Hole, DiscGolfFeature, TeeProperties, FlightLineProperties, DropzoneProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature } from '../../../types/course';
 import type { ExportConfig } from '../../../types/export';
 import { TERRAIN_PATTERNS, getTerrainColors } from '../../../types/terrain';
-import type { TreeFeature } from '../../../types/trees';
-import { generateTerrainPattern, generateCompassRose, generateScaleBar, resetPatternIds, generateGrassImageBackground } from '../../svgPatterns';
-import { generateTreeSVG } from '../../treeSvg';
-import type { TreeType } from '../../../types/trees';
+import type { TreeFeature, TreeType } from '../../../types/trees';
+import { TREE_PATTERNS, getTreeImagePath } from '../../../types/trees';
+import { generateTerrainPattern, generateCompassRose, generateScaleBar, resetPatternIds, generateGrassImageBackground, generateHighgrassImageBackground } from '../../svgPatterns';
+import { getCachedTreeImage } from '../../treeSvg';
 import { calculateBounds, geoToSVG, polygonCoordsToSVG, lineStringToSVG, polygonToPath } from '../coordinate-transform';
 import type { SVGViewport } from '../coordinate-transform';
 import { CollisionManager } from '../collision-detection';
@@ -96,6 +96,38 @@ function calculateDensityMetrics(
   };
 }
 
+// Generate tree SVG using <use> reference to defined image (avoids duplicating base64)
+// metersPerPixel allows scaling trees to realistic sizes (crown width ~8-12 meters)
+function generateTreeUseRef(
+  x: number,
+  y: number,
+  treeType: TreeType,
+  size: number,
+  rotation: number,
+  opacity: number = 1,
+  metersPerPixel?: number
+): string {
+  const pattern = TREE_PATTERNS[treeType] ?? TREE_PATTERNS.tree1;
+
+  let heightPx: number;
+  if (metersPerPixel && metersPerPixel > 0) {
+    // Realistic tree crown size: 4-6 meters for typical trees viewed from above
+    const treeCrownMeters = 5 * size;
+    heightPx = treeCrownMeters / metersPerPixel;
+    // Clamp to reasonable pixel range to prevent oversized trees
+    heightPx = Math.min(heightPx, 60);
+  } else {
+    // Fallback to fixed pixel size for UI rendering
+    heightPx = pattern.defaultSize * size;
+  }
+
+  const widthPx = heightPx * pattern.aspectRatio;
+  const imgX = x - widthPx / 2;
+  const imgY = y - heightPx / 2;
+
+  return `<use href="#tree_img_${treeType}" x="${imgX.toFixed(2)}" y="${imgY.toFixed(2)}" width="${widthPx.toFixed(2)}" height="${heightPx.toFixed(2)}" transform="rotate(${rotation} ${x} ${y})" opacity="${opacity}" />`;
+}
+
 export interface SVGExportOptions extends ExportConfig {
   course: Course;
   selectedHoleIds?: string[];
@@ -172,11 +204,15 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     let bgPatternId: string;
     let bgPatternSvg: string;
 
-    // For grass, use photo-realistic tile pattern (1 tile = 5 meters)
+    // For grass/roughGrass, use photo-realistic tile pattern (1 tile = 10 meters)
     if (defaultTerrainType === 'grass') {
-      const grassPattern = generateGrassImageBackground('grass_bg', metersPerPixel, 20);
+      const grassPattern = generateGrassImageBackground('grass_bg', metersPerPixel, 10);
       bgPatternId = grassPattern.id;
       bgPatternSvg = grassPattern.svg;
+    } else if (defaultTerrainType === 'roughGrass') {
+      const highgrassPattern = generateHighgrassImageBackground('highgrass_bg', metersPerPixel, 10);
+      bgPatternId = highgrassPattern.id;
+      bgPatternSvg = highgrassPattern.svg;
     } else {
       // For other terrain types, use programmatic patterns
       const bgColors = {
@@ -191,6 +227,17 @@ export function generateCourseSVG(options: SVGExportOptions): string {
 
     defsContent += bgPatternSvg;
     terrainPatternMap.set('background', bgPatternId);
+
+    // Add tree image definitions wrapped in symbols for proper scaling with <use>
+    const treeTypes: TreeType[] = ['tree1', 'tree2', 'tree3', 'tree4'];
+    treeTypes.forEach(treeType => {
+      const cachedBase64 = getCachedTreeImage(treeType);
+      const imageHref = cachedBase64 || getTreeImagePath(treeType).slice(1);
+      // Wrap in <symbol> with viewBox so <use> width/height will scale it properly
+      defsContent += `<symbol id="tree_img_${treeType}" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="${imageHref}" width="100" height="100" />
+      </symbol>`;
+    });
 
     // Add defs and background
     svg += `<defs>${defsContent}</defs>`;
@@ -238,11 +285,21 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     const patternKey = props.terrainType + JSON.stringify(colors);
     let patternId = terrainPatternMap.get(patternKey);
     if (!patternId) {
-      const { id, svg: patternSvg } = generateTerrainPattern(props.terrainType, colors, 1);
-      patternId = id;
+      // Use image patterns for grass and roughGrass
+      if (props.terrainType === 'grass') {
+        const { id, svg: patternSvg } = generateGrassImageBackground(`terrain_grass_${Date.now()}`, metersPerPixel, 10);
+        patternId = id;
+        svg = svg.replace('</defs>', `${patternSvg}</defs>`);
+      } else if (props.terrainType === 'roughGrass') {
+        const { id, svg: patternSvg } = generateHighgrassImageBackground(`terrain_highgrass_${Date.now()}`, metersPerPixel, 10);
+        patternId = id;
+        svg = svg.replace('</defs>', `${patternSvg}</defs>`);
+      } else {
+        const { id, svg: patternSvg } = generateTerrainPattern(props.terrainType, colors, 1);
+        patternId = id;
+        svg = svg.replace('</defs>', `${patternSvg}</defs>`);
+      }
       terrainPatternMap.set(patternKey, patternId);
-      // Inject pattern into defs
-      svg = svg.replace('</defs>', `${patternSvg}</defs>`);
     }
 
     const coords = (f.geometry as { coordinates: number[][][] }).coordinates[0];
@@ -283,18 +340,16 @@ export function generateCourseSVG(options: SVGExportOptions): string {
       const coords = f.geometry.coordinates as [number, number];
       const [x, y] = geoToSVG(coords, viewport);
 
-      // Generate tree SVG at this position
-      const treeSvg = generateTreeSVG(
+      // Generate tree SVG at this position using reference
+      svg += generateTreeUseRef(
         x,
         y,
         props.treeType,
         props.size ?? 1,
         props.rotation ?? 0,
-        undefined,
         props.opacity ?? 1,
-        densityMetrics.markerScale
+        metersPerPixel
       );
-      svg += treeSvg;
     });
   }
 
@@ -320,6 +375,12 @@ export function generateCourseSVG(options: SVGExportOptions): string {
 
     const polyWidth = maxX - minX;
     const polyHeight = maxY - minY;
+
+    // Skip invalid polygons
+    if (!isFinite(polyWidth) || !isFinite(polyHeight) || polyWidth <= 0 || polyHeight <= 0) {
+      return;
+    }
+
     const area = polyWidth * polyHeight;
 
     // Point in polygon check
@@ -370,18 +431,26 @@ export function generateCourseSVG(options: SVGExportOptions): string {
       return minDist;
     };
 
-    // Calculate number of trees based on area - dense forest
-    const baseDensity = 25; // Trees per 10000 sq pixels
-    const treeCount = Math.max(3, Math.floor((area / 10000) * baseDensity));
-    const minSpacing = 18 * densityMetrics.markerScale;
-    // Edge margin proportional to polygon size, but minimum for small areas
-    const maxDim = Math.max(polyWidth, polyHeight);
-    const edgeMargin = Math.min(15, maxDim * 0.1) * densityMetrics.markerScale;
+    // Calculate tree spacing based on map scale
+    // For dense forest canopy, trees should overlap slightly
+    const treeSpacingMeters = 4; // Tight spacing for canopy overlap
+    const edgeMarginMeters = 2; // Keep trees 2m from forest edge
+
+    // Convert to pixels
+    const minSpacing = Math.max(8, treeSpacingMeters / metersPerPixel);
+    const edgeMargin = Math.max(4, edgeMarginMeters / metersPerPixel);
+
+    // Calculate area in square meters for density calculation
+    const areaMeters = area * metersPerPixel * metersPerPixel;
+    // Dense forest: ~600-800 trees per hectare for full canopy coverage
+    const treesPerHectare = 700;
+    const rawTreeCount = Math.floor((areaMeters / 10000) * treesPerHectare);
+    const treeCount = Math.max(5, Math.min(300, rawTreeCount)); // Cap at 300 trees per polygon
 
     // Generate tree placements
     const placements: Array<{ x: number; y: number; type: TreeType; size: number; rotation: number }> = [];
     let attempts = 0;
-    const maxAttempts = treeCount * 20;
+    const maxAttempts = treeCount * 50; // More attempts for denser placement
 
     while (placements.length < treeCount && attempts < maxAttempts) {
       attempts++;
@@ -409,7 +478,7 @@ export function generateCourseSVG(options: SVGExportOptions): string {
         x,
         y,
         type: pickTreeType(),
-        size: 1.0 + random() * 0.5, // Size variation
+        size: 1.2 + random() * 0.8, // Larger trees (1.2-2.0) for better coverage
         rotation: random() * 360,
       });
     }
@@ -417,14 +486,13 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     // Render trees (sorted by y for proper overlap)
     placements.sort((a, b) => a.y - b.y);
     placements.forEach(p => {
-      svg += generateTreeSVG(
+      svg += generateTreeUseRef(
         p.x, p.y,
         p.type,
         p.size,
         p.rotation,
-        undefined, // Use default colors
         0.9 + random() * 0.1, // Slight opacity variation
-        densityMetrics.markerScale
+        metersPerPixel
       );
     });
   });

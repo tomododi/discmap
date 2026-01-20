@@ -1,11 +1,12 @@
 import type { Course, Hole, TeeProperties, FlightLineProperties, DropzoneProperties, OBLineProperties, DropzoneAreaProperties, TerrainFeature, TerrainFeatureProperties, PathFeature } from '../../../types/course';
 import { TERRAIN_PATTERNS, getTerrainColors } from '../../../types/terrain';
 import type { TreeType } from '../../../types/trees';
-import { generateGrassImageBackground, generateTerrainPattern, resetPatternIds } from '../../svgPatterns';
-import { generateTreeSVG } from '../../treeSvg';
+import { TREE_PATTERNS, getTreeImagePath } from '../../../types/trees';
+import { generateGrassImageBackground, generateHighgrassImageBackground, generateTerrainPattern, resetPatternIds } from '../../svgPatterns';
+import { getCachedTreeImage } from '../../treeSvg';
 import { calculateBounds, geoToSVG, polygonCoordsToSVG, lineStringToSVG } from '../coordinate-transform';
 import type { SVGViewport } from '../coordinate-transform';
-import { getTextColor, generateTeeSVG, generateBasketTopViewSVG, generateDropzoneSVG, generateMandatorySVG, darkenColor } from '../svg-markers';
+import { generateTeeSVG, generateBasketTopViewSVG, generateDropzoneSVG, generateMandatorySVG, darkenColor } from '../svg-markers';
 
 export interface TeeSignOptions {
   hole: Hole;
@@ -111,6 +112,108 @@ export function escapeXml(text: string): string {
     .replace(/'/g, '&apos;');
 }
 
+// Seeded random number generator for consistent blob shapes
+function seededRandom(seed: number): () => number {
+  return function() {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+}
+
+// Generate organic blob path that contains a rectangular area
+function generateOrganicBlobPath(
+  cx: number,
+  cy: number,
+  width: number,
+  height: number,
+  seed: number = 42
+): string {
+  const random = seededRandom(seed);
+
+  // Base radii from center
+  const rx = width / 2;
+  const ry = height / 2;
+
+  // Number of control points around the blob
+  const numPoints = 12;
+  const points: Array<{ x: number; y: number }> = [];
+
+  // Generate points around an ellipse with organic variation
+  for (let i = 0; i < numPoints; i++) {
+    const angle = (i / numPoints) * Math.PI * 2 - Math.PI / 2; // Start from top
+
+    // Add variation to the radius (reduced variation for better space utilization)
+    const radiusVariation = 0.92 + random() * 0.16;
+
+    // Use different base radius for x and y to create ellipse
+    const baseRx = rx * radiusVariation;
+    const baseRy = ry * radiusVariation;
+
+    // Add slight angle variation
+    const angleVariation = (random() - 0.5) * 0.1;
+    const adjustedAngle = angle + angleVariation;
+
+    points.push({
+      x: cx + baseRx * Math.cos(adjustedAngle),
+      y: cy + baseRy * Math.sin(adjustedAngle),
+    });
+  }
+
+  // Build smooth bezier path through points
+  let path = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+
+  for (let i = 0; i < numPoints; i++) {
+    const p0 = points[(i - 1 + numPoints) % numPoints];
+    const p1 = points[i];
+    const p2 = points[(i + 1) % numPoints];
+    const p3 = points[(i + 2) % numPoints];
+
+    // Calculate control points for smooth curve
+    const tension = 0.3;
+    const cp1x = p1.x + (p2.x - p0.x) * tension;
+    const cp1y = p1.y + (p2.y - p0.y) * tension;
+    const cp2x = p2.x - (p3.x - p1.x) * tension;
+    const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+    path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+
+  path += ' Z';
+  return path;
+}
+
+// Generate tree SVG using <use> reference to defined image (avoids duplicating base64)
+// metersPerPixel allows scaling trees to realistic sizes (crown width ~8-12 meters)
+function generateTreeUseRef(
+  x: number,
+  y: number,
+  treeType: TreeType,
+  size: number,
+  rotation: number,
+  opacity: number = 1,
+  metersPerPixel?: number
+): string {
+  const pattern = TREE_PATTERNS[treeType] ?? TREE_PATTERNS.tree1;
+
+  let heightPx: number;
+  if (metersPerPixel && metersPerPixel > 0) {
+    // Realistic tree crown size: 4-6 meters for typical trees viewed from above
+    const treeCrownMeters = 5 * size;
+    heightPx = treeCrownMeters / metersPerPixel;
+    // Clamp to reasonable pixel range to prevent oversized trees
+    heightPx = Math.min(heightPx, 60);
+  } else {
+    // Fallback to fixed pixel size for UI rendering
+    heightPx = pattern.defaultSize * size;
+  }
+
+  const widthPx = heightPx * pattern.aspectRatio;
+  const imgX = x - widthPx / 2;
+  const imgY = y - heightPx / 2;
+
+  return `<use href="#tree_img_${treeType}" x="${imgX.toFixed(2)}" y="${imgY.toFixed(2)}" width="${widthPx.toFixed(2)}" height="${heightPx.toFixed(2)}" transform="rotate(${rotation} ${x} ${y})" opacity="${opacity}" />`;
+}
+
 export function generateTeeSignSVG(options: TeeSignOptions): string {
   const {
     hole,
@@ -118,190 +221,80 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     width = 794,
     height = 1123,
     units,
-    includeNotes,
-    includeRules,
     includeLegend,
-    includeCourseName,
     logoDataUrl,
   } = options;
 
   const style = course.style;
 
-  // Layout dimensions - sidebar on left, map fills the rest
-  const sidebarWidth = 150;
-  const sidebarPadding = 12;
-  const mapAreaWidth = width - sidebarWidth; // Map fills entire right side
-  const mapAreaHeight = height; // Full height
-  const mapX = sidebarWidth;
-  const mapY = 0;
-
   // Reset pattern IDs for consistent generation
   resetPatternIds();
 
+  // Layout dimensions - full width blob design
+  const pagePadding = 30;
+  const infoAreaWidth = 180; // Left side info area
+  const blobPadding = 30; // Reduced padding inside blob for better fill
+
+  // Blob dimensions - positioned to leave room for info on left
+  const blobWidth = width - infoAreaWidth - pagePadding;
+  const blobHeight = height - pagePadding * 2;
+  const blobCenterX = infoAreaWidth + blobWidth / 2;
+  const blobCenterY = pagePadding + blobHeight / 2;
+
+  // Map area inside blob (smaller to fit within organic shape)
+  const mapAreaWidth = blobWidth - blobPadding * 2;
+  const mapAreaHeight = blobHeight - blobPadding * 2;
+  const mapX = infoAreaWidth + blobPadding;
+  const mapY = pagePadding + blobPadding;
+
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
 
-  // ============ SIDEBAR SECTION (Left) ============
-  // Dark sidebar background
-  svg += `<rect x="0" y="0" width="${sidebarWidth}" height="${height}" fill="#1f2937" />`;
+  // ============ BACKGROUND ============
+  // Light gray textured background
+  svg += `<defs>
+    <pattern id="bg_dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#d1d5db" opacity="0.5" />
+    </pattern>
+  </defs>`;
+  svg += `<rect width="${width}" height="${height}" fill="#f3f4f6" />`;
+  svg += `<rect width="${width}" height="${height}" fill="url(#bg_dots)" />`;
 
-  // Current Y position for stacking sidebar elements
-  let sidebarY = sidebarPadding;
+  // ============ ORGANIC BLOB SHAPE ============
+  const blobSeed = hole.number * 12345 + course.id.charCodeAt(0);
+  const blobPath = generateOrganicBlobPath(blobCenterX, blobCenterY, blobWidth * 0.98, blobHeight * 0.98, blobSeed);
+  const blobClipId = `blob_clip_${hole.number}`;
 
-  // Title: "Hole X"
-  svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 20}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="16" fill="white">Hole ${hole.number}</text>`;
+  // ============ LEFT SIDE INFO ============
+  const infoX = pagePadding;
+  let infoY = pagePadding + 20;
 
-  // Subtitle: course name or hole name
-  if (includeCourseName) {
-    svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 38}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)">${escapeXml(course.name)}</text>`;
-    sidebarY += 50;
-  } else if (hole.name) {
-    svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 38}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)">${escapeXml(hole.name)}</text>`;
-    sidebarY += 50;
-  } else {
-    sidebarY += 32;
-  }
-
-  // Par box (blue)
-  const parBoxWidth = sidebarWidth - sidebarPadding * 2;
-  const parBoxHeight = 60;
-  const parBoxX = sidebarPadding;
-  svg += `<rect x="${parBoxX}" y="${sidebarY}" width="${parBoxWidth}" height="${parBoxHeight}" rx="6" fill="#3b82f6" />`;
-  svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 35}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="32" fill="white">${hole.number}</text>`;
-  svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 52}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)">Par ${hole.par}</text>`;
-  sidebarY += parBoxHeight + 10;
-
-  // Distance boxes - stacked vertically
-  const distances = getHoleDistances(hole, course, units);
-  const unitLabel = units === 'meters' ? 'm' : 'ft';
-  const distBoxWidth = sidebarWidth - sidebarPadding * 2;
-  const distBoxHeight = 36;
-  const distBoxGap = 6;
-
-  if (distances.length > 0) {
-    distances.forEach((dist) => {
-      svg += `<rect x="${parBoxX}" y="${sidebarY}" width="${distBoxWidth}" height="${distBoxHeight}" rx="4" fill="${dist.color}" />`;
-      svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 24}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="18" fill="${getTextColor(dist.color)}">${dist.distance}${unitLabel}</text>`;
-      if (dist.teeName) {
-        svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 34}" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="${getTextColor(dist.color)}" opacity="0.85">${escapeXml(dist.teeName)}</text>`;
-      }
-      sidebarY += distBoxHeight + distBoxGap;
-    });
-  } else {
-    svg += `<rect x="${parBoxX}" y="${sidebarY}" width="${distBoxWidth}" height="${distBoxHeight}" rx="4" fill="#4b5563" />`;
-    svg += `<text x="${sidebarWidth / 2}" y="${sidebarY + 22}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">No tees placed</text>`;
-    sidebarY += distBoxHeight + distBoxGap;
-  }
-
-  // Collect notes for the info section
-  const allNotes: Array<{ label: string; note: string; color: string }> = [];
-
-  if (includeNotes && hole.notes) {
-    allNotes.push({ label: 'Hole Info', note: hole.notes, color: '#3b82f6' });
-  }
-
-  if (includeNotes) {
-    hole.features.forEach(f => {
-      const props = f.properties as { notes?: string; type: string; label?: string };
-      if (props.notes) {
-        let label = '';
-        let color = '#6b7280';
-        switch (props.type) {
-          case 'dropzone':
-            label = 'Dropzone';
-            color = style.dropzoneColor;
-            break;
-          case 'mandatory':
-            label = 'Mandatory';
-            color = style.mandatoryColor;
-            break;
-          case 'tee':
-            label = props.label || 'Tee';
-            color = (f.properties as TeeProperties).color || style.defaultTeeColor;
-            break;
-          case 'basket':
-            label = 'Basket';
-            color = style.basketTopColor;
-            break;
-          case 'obZone':
-          case 'obLine':
-            label = props.label || 'OB';
-            color = '#dc2626';
-            break;
-          default:
-            label = props.label || props.type;
-        }
-        allNotes.push({ label, note: props.notes, color });
-      }
-    });
-  }
-
-  if (includeRules && hole.rules && hole.rules.length > 0) {
-    hole.rules.forEach((rule, i) => {
-      allNotes.push({ label: `Rule ${i + 1}`, note: rule, color: '#059669' });
-    });
-  }
-
-  // Notes section in sidebar
-  if (allNotes.length > 0) {
-    sidebarY += 6;
-    // Section header
-    svg += `<text x="${sidebarPadding}" y="${sidebarY + 12}" font-family="Arial, sans-serif" font-weight="bold" font-size="10" fill="rgba(255,255,255,0.6)">HOLE INFO</text>`;
-    sidebarY += 18;
-
-    // Divider line
-    svg += `<line x1="${sidebarPadding}" y1="${sidebarY}" x2="${sidebarWidth - sidebarPadding}" y2="${sidebarY}" stroke="rgba(255,255,255,0.2)" stroke-width="1" />`;
-    sidebarY += 8;
-
-    const maxNoteWidth = sidebarWidth - sidebarPadding * 2;
-    const lineHeight = 12;
-    const noteGap = 10;
-    const maxSidebarY = height - 40; // Leave space at bottom
-
-    allNotes.forEach((noteItem) => {
-      if (sidebarY > maxSidebarY - 30) return; // Stop if running out of space
-
-      // Note label with color indicator
-      svg += `<rect x="${sidebarPadding}" y="${sidebarY}" width="3" height="12" rx="1" fill="${noteItem.color}" />`;
-      svg += `<text x="${sidebarPadding + 6}" y="${sidebarY + 9}" font-family="Arial, sans-serif" font-weight="bold" font-size="9" fill="${noteItem.color}">${escapeXml(noteItem.label)}</text>`;
-      sidebarY += 14;
-
-      // Note text - wrap lines
-      const noteLines = wrapText(noteItem.note, maxNoteWidth, 9);
-      const maxLines = Math.min(2, Math.floor((maxSidebarY - sidebarY) / lineHeight));
-
-      noteLines.slice(0, maxLines).forEach((line, lineIndex) => {
-        const displayLine = lineIndex === maxLines - 1 && noteLines.length > maxLines
-          ? line.substring(0, Math.floor(line.length * 0.8)) + '...'
-          : line;
-        svg += `<text x="${sidebarPadding}" y="${sidebarY + 9}" font-family="Arial, sans-serif" font-size="9" fill="rgba(255,255,255,0.85)">${escapeXml(displayLine)}</text>`;
-        sidebarY += lineHeight;
-      });
-
-      sidebarY += noteGap;
-    });
-  }
-
-  // Logo at bottom of sidebar
+  // Logo (if provided)
   if (logoDataUrl) {
-    const logoMaxWidth = sidebarWidth - sidebarPadding * 2;
-    const logoMaxHeight = 60;
-    const logoY = height - sidebarPadding - logoMaxHeight;
-    const logoCenterX = sidebarWidth / 2;
-
-    svg += `<image
-      href="${logoDataUrl}"
-      x="${logoCenterX - logoMaxWidth / 2}"
-      y="${logoY}"
-      width="${logoMaxWidth}"
-      height="${logoMaxHeight}"
-      preserveAspectRatio="xMidYMid meet"
-    />`;
+    const logoSize = 100;
+    svg += `<image href="${logoDataUrl}" x="${infoX}" y="${infoY}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet" />`;
+    infoY += logoSize + 30;
+  } else {
+    infoY += 40;
   }
 
-  // ============ MAP SECTION (Right) ============
+  // PAR label
+  svg += `<text x="${infoX}" y="${infoY}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="28" fill="#1f2937">PAR ${hole.par}</text>`;
+  infoY += 60;
 
-  // Get hole features and calculate bounds
-  const holeFeatures = hole.features;
+  // Hole number (large)
+  svg += `<text x="${infoX}" y="${infoY + 80}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="140" fill="#1f2937">${hole.number}</text>`;
+  infoY += 160;
+
+  // Distance
+  const distances = getHoleDistances(hole, course, units);
+  const unitLabel = units === 'meters' ? 'M' : 'FT';
+  if (distances.length > 0) {
+    const mainDistance = distances[0];
+    svg += `<text x="${infoX}" y="${infoY}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="36" fill="#1f2937">${mainDistance.distance} ${unitLabel}</text>`;
+  }
+
+  // Get hole features
+  const holeFeatures = hole.features || [];
   const bounds = calculateBounds(holeFeatures);
 
   if (bounds) {
@@ -367,8 +360,8 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       estimatedMetersPerPixel = boundsWidthMeters / (mapAreaWidth - 10);
     }
 
-    // Add marker padding: 60 pixels worth of space on each edge (for tee/basket markers)
-    const markerPaddingPixels = 60;
+    // Add marker padding: minimal padding for tee/basket markers (will be refined after aspect ratio adjustment)
+    const markerPaddingPixels = 35;
     const markerPaddingMeters = markerPaddingPixels * estimatedMetersPerPixel;
     const markerPaddingLng = markerPaddingMeters / metersPerDegreeLng;
     const markerPaddingLat = markerPaddingMeters / metersPerDegreeLat;
@@ -380,7 +373,7 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
 
     // Adjust bounds aspect ratio to match viewport for optimal fill
     // This ensures the hole fills the available space
-    const viewportPadding = 20;
+    const viewportPadding = 10;
     const contentWidth = mapAreaWidth - 2 * viewportPadding;
     const contentHeight = mapAreaHeight - 2 * viewportPadding;
     const targetAspect = contentHeight / contentWidth; // SVG aspect ratio (height/width)
@@ -433,9 +426,13 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     let bgPatternSvg: string;
 
     if (defaultTerrainType === 'grass') {
-      const grassPattern = generateGrassImageBackground('teesign_grass_bg', metersPerPixel, 20);
+      const grassPattern = generateGrassImageBackground('teesign_grass_bg', metersPerPixel, 10);
       bgPatternId = grassPattern.id;
       bgPatternSvg = grassPattern.svg;
+    } else if (defaultTerrainType === 'roughGrass') {
+      const highgrassPattern = generateHighgrassImageBackground('teesign_highgrass_bg', metersPerPixel, 10);
+      bgPatternId = highgrassPattern.id;
+      bgPatternSvg = highgrassPattern.svg;
     } else {
       const defaultTerrainPattern = TERRAIN_PATTERNS[defaultTerrainType];
       const bgColors = {
@@ -449,23 +446,41 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     }
     defsContent += bgPatternSvg;
 
-    // Clip path for map area
-    const clipId = `clip_${Date.now()}`;
-    defsContent += `<clipPath id="${clipId}"><rect width="${mapAreaWidth}" height="${mapAreaHeight}" /></clipPath>`;
+    // Add tree image definitions wrapped in symbols for proper scaling with <use>
+    const treeTypes: TreeType[] = ['tree1', 'tree2', 'tree3', 'tree4'];
+    treeTypes.forEach(treeType => {
+      const cachedBase64 = getCachedTreeImage(treeType);
+      const imageHref = cachedBase64 || getTreeImagePath(treeType).slice(1);
+      // Wrap in <symbol> with viewBox so <use> width/height will scale it properly
+      defsContent += `<symbol id="tree_img_${treeType}" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="${imageHref}" width="100" height="100" />
+      </symbol>`;
+    });
+
+    // Clip path for organic blob shape
+    defsContent += `<clipPath id="${blobClipId}"><path d="${blobPath}" /></clipPath>`;
 
     svg += `<defs>${defsContent}</defs>`;
-    svg += `<g transform="translate(${mapX}, ${mapY})">`;
 
-    // Clip group for map content
-    svg += `<g clip-path="url(#${clipId})">`;
+    // Dark blob outline/shadow
+    svg += `<path d="${blobPath}" fill="#1f2937" transform="translate(4, 4)" opacity="0.3" />`;
+    svg += `<path d="${blobPath}" fill="#1f2937" />`;
 
-    // Background
+    // Map content inside blob (slightly smaller for border effect)
+    svg += `<g clip-path="url(#${blobClipId})">`;
+
+    // Background fills the blob area
+    const blobBoundsMinX = blobCenterX - blobWidth / 2;
+    const blobBoundsMinY = blobCenterY - blobHeight / 2;
     if (defaultTerrainType === 'grass') {
-      svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" fill="url(#${bgPatternId})" />`;
+      svg += `<rect x="${blobBoundsMinX - 50}" y="${blobBoundsMinY - 50}" width="${blobWidth + 100}" height="${blobHeight + 100}" fill="url(#${bgPatternId})" />`;
     } else {
-      svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" fill="#1a2e1a" />`;
-      svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" fill="url(#${bgPatternId})" opacity="0.7" />`;
+      svg += `<rect x="${blobBoundsMinX - 50}" y="${blobBoundsMinY - 50}" width="${blobWidth + 100}" height="${blobHeight + 100}" fill="#1a2e1a" />`;
+      svg += `<rect x="${blobBoundsMinX - 50}" y="${blobBoundsMinY - 50}" width="${blobWidth + 100}" height="${blobHeight + 100}" fill="url(#${bgPatternId})" opacity="0.7" />`;
     }
+
+    // Inner group for map content positioning
+    svg += `<g transform="translate(${mapX}, ${mapY})">`;
 
     // Calculate center for rotation
     const centerX = mapAreaWidth / 2;
@@ -496,10 +511,21 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       const patternKey = props.terrainType + JSON.stringify(colors);
       let patternId = terrainPatternMap.get(patternKey);
       if (!patternId) {
-        const { id, svg: patternSvg } = generateTerrainPattern(props.terrainType, colors, 1);
-        patternId = id;
+        // Use image patterns for grass and roughGrass
+        if (props.terrainType === 'grass') {
+          const { id, svg: patternSvg } = generateGrassImageBackground(`terrain_grass_${Date.now()}`, metersPerPixel, 10);
+          patternId = id;
+          svg = svg.replace('</defs>', `${patternSvg}</defs>`);
+        } else if (props.terrainType === 'roughGrass') {
+          const { id, svg: patternSvg } = generateHighgrassImageBackground(`terrain_highgrass_${Date.now()}`, metersPerPixel, 10);
+          patternId = id;
+          svg = svg.replace('</defs>', `${patternSvg}</defs>`);
+        } else {
+          const { id, svg: patternSvg } = generateTerrainPattern(props.terrainType, colors, 1);
+          patternId = id;
+          svg = svg.replace('</defs>', `${patternSvg}</defs>`);
+        }
         terrainPatternMap.set(patternKey, patternId);
-        svg = svg.replace('</defs>', `${patternSvg}</defs>`);
       }
 
       const coords = (f.geometry as { coordinates: number[][][] }).coordinates[0];
@@ -525,14 +551,13 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       course.treeFeatures.forEach((f) => {
         const [x, y] = geoToSVG((f.geometry as { coordinates: number[] }).coordinates as [number, number], mapViewport);
         const props = f.properties;
-        svg += generateTreeSVG(
+        svg += generateTreeUseRef(
           x, y,
           props.treeType,
           props.size ?? 1,
           props.rotation ?? 0,
-          undefined,
           props.opacity ?? 1,
-          1.0
+          metersPerPixel
         );
       });
     }
@@ -559,6 +584,12 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
 
       const polyWidth = maxX - minX;
       const polyHeight = maxY - minY;
+
+      // Skip invalid polygons
+      if (!isFinite(polyWidth) || !isFinite(polyHeight) || polyWidth <= 0 || polyHeight <= 0) {
+        return;
+      }
+
       const area = polyWidth * polyHeight;
 
       // Point in polygon check
@@ -609,18 +640,26 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
         return minDist;
       };
 
-      // Calculate number of trees based on area - dense forest
-      const baseDensity = 25;
-      const treeCount = Math.max(3, Math.floor((area / 10000) * baseDensity));
-      const minSpacing = 18;
-      // Edge margin proportional to polygon size, but minimum for small areas
-      const maxDim = Math.max(polyWidth, polyHeight);
-      const edgeMargin = Math.min(15, maxDim * 0.1);
+      // Calculate tree spacing based on map scale
+      // For dense forest canopy, trees should overlap slightly
+      const treeSpacingMeters = 4; // Tight spacing for canopy overlap
+      const edgeMarginMeters = 2; // Keep trees 2m from forest edge
+
+      // Convert to pixels
+      const minSpacing = Math.max(8, treeSpacingMeters / metersPerPixel);
+      const edgeMargin = Math.max(4, edgeMarginMeters / metersPerPixel);
+
+      // Calculate area in square meters for density calculation
+      const areaMeters = area * metersPerPixel * metersPerPixel;
+      // Dense forest: ~600-800 trees per hectare for full canopy coverage
+      const treesPerHectare = 700;
+      const rawTreeCount = Math.floor((areaMeters / 10000) * treesPerHectare);
+      const treeCount = Math.max(5, Math.min(300, rawTreeCount)); // Cap at 300 trees per polygon
 
       // Generate tree placements
       const placements: Array<{ x: number; y: number; type: TreeType; size: number; rotation: number }> = [];
       let attempts = 0;
-      const maxAttempts = treeCount * 20;
+      const maxAttempts = treeCount * 50; // More attempts for denser placement
 
       while (placements.length < treeCount && attempts < maxAttempts) {
         attempts++;
@@ -648,7 +687,7 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
           x,
           y,
           type: pickTreeType(),
-          size: 1.0 + random() * 0.5,
+          size: 1.2 + random() * 0.8, // Larger trees (1.2-2.0) for better coverage
           rotation: random() * 360,
         });
       }
@@ -656,14 +695,13 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       // Render trees (sorted by y for proper overlap)
       placements.sort((a, b) => a.y - b.y);
       placements.forEach(p => {
-        svg += generateTreeSVG(
+        svg += generateTreeUseRef(
           p.x, p.y,
           p.type,
           p.size,
           p.rotation,
-          undefined,
           0.9 + random() * 0.1,
-          1.0
+          metersPerPixel
         );
       });
     });
@@ -751,9 +789,10 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
     });
 
     svg += '</g>'; // End rotation group
-    svg += '</g>'; // End clip group
+    svg += '</g>'; // End inner translate group
+    svg += '</g>'; // End blob clip group
 
-    // Legend (outside rotation, always in corner)
+    // Legend (outside blob, positioned in bottom right of page)
     if (includeLegend) {
       const hasOB = holeFeatures.some(f => f.properties.type === 'obZone' || f.properties.type === 'obLine' || f.properties.type === 'dropzoneArea');
       const hasFairway = holeFeatures.some(f => f.properties.type === 'fairway');
@@ -818,8 +857,8 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
         const legendItemHeight = 16;
         const legendWidth = 80;
         const legendHeight = legendItems.length * legendItemHeight + legendPadding * 2 + 14;
-        const legendX = mapAreaWidth - legendWidth - 10;
-        const legendY = mapAreaHeight - legendHeight - 10;
+        const legendX = width - legendWidth - pagePadding;
+        const legendY = height - legendHeight - pagePadding;
 
         svg += `<rect x="${legendX}" y="${legendY}" width="${legendWidth}" height="${legendHeight}" rx="4" fill="white" fill-opacity="0.95" stroke="#374151" stroke-width="1" />`;
 
@@ -833,13 +872,11 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       }
     }
 
-    svg += '</g>'; // End map translate group
   } else {
-    // No features - show placeholder
-    svg += `<g transform="translate(${mapX}, ${mapY})">`;
-    svg += `<rect width="${mapAreaWidth}" height="${mapAreaHeight}" fill="#1a2e1a" />`;
-    svg += `<text x="${mapAreaWidth / 2}" y="${mapAreaHeight / 2}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">No features on this hole</text>`;
-    svg += '</g>';
+    // No features - show placeholder blob
+    svg += `<path d="${blobPath}" fill="#1f2937" transform="translate(4, 4)" opacity="0.3" />`;
+    svg += `<path d="${blobPath}" fill="#2d3748" />`;
+    svg += `<text x="${blobCenterX}" y="${blobCenterY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">No features on this hole</text>`;
   }
 
   svg += '</svg>';

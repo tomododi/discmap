@@ -2,6 +2,8 @@ import JSZip from 'jszip';
 import type { Course } from '../../types/course';
 import { generateTeeSignSVG } from './layouts/tee-sign';
 import type { TeeSignOptions } from './layouts/tee-sign';
+import { initGrassImageCache, initHighgrassImageCache } from '../svgPatterns';
+import { initTreeImageCache } from '../treeSvg';
 
 // Layouts
 export { generateCourseSVG, generateHoleExportData } from './layouts/course-map';
@@ -12,6 +14,9 @@ export { generatePrintLayoutSVG, generateHolePageSVG } from './layouts/print-lay
 export type { SVGExportOptions, HoleExportData } from './layouts/course-map';
 export type { TeeSignOptions } from './layouts/tee-sign';
 export type { PrintLayoutOptions } from './layouts/print-layout';
+
+// Re-export cache initialization for use in components
+export { initGrassImageCache, initHighgrassImageCache } from '../svgPatterns';
 
 // Helper for download
 export function downloadSVG(svgContent: string, filename: string): void {
@@ -31,6 +36,13 @@ export async function generateTeeSignsZip(
   course: Course,
   options: Omit<TeeSignOptions, 'hole'>
 ): Promise<Blob> {
+  // Ensure image caches are loaded before generating SVGs
+  await Promise.all([
+    initGrassImageCache(),
+    initHighgrassImageCache(),
+    initTreeImageCache(),
+  ]);
+
   const zip = new JSZip();
 
   // Generate SVG for each hole
@@ -44,33 +56,8 @@ export async function generateTeeSignsZip(
     zip.file(filename, svg);
   }
 
-  // Add grass.jpg if using grass terrain
-  const defaultTerrain = course.style.defaultTerrain ?? 'grass';
-  if (defaultTerrain === 'grass') {
-    try {
-      const response = await fetch('/grass.jpg');
-      if (response.ok) {
-        const grassBlob = await response.blob();
-        zip.file('grass.jpg', grassBlob);
-      }
-    } catch {
-      // Grass image not available, skip
-    }
-  }
-
-  // Add tree images (used by forest terrain and tree features)
-  const treeImages = ['tree1.png', 'tree2.png', 'tree3.png', 'tree4.png'];
-  for (const treeImage of treeImages) {
-    try {
-      const response = await fetch(`/${treeImage}`);
-      if (response.ok) {
-        const treeBlob = await response.blob();
-        zip.file(treeImage, treeBlob);
-      }
-    } catch {
-      // Tree image not available, skip
-    }
-  }
+  // Note: Grass and tree images are embedded as base64 in SVGs via caching system
+  // No need to add external files to ZIP
 
   return zip.generateAsync({ type: 'blob' });
 }

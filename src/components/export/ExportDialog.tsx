@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Download, FileImage, Loader2, FileArchive, Map, Upload, Trash2 } from 'lucide-react';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
-import { generateCourseSVG, downloadSVG, generateTeeSignsZip, downloadZip } from '../../utils/svgExport';
+import { generateCourseSVG, downloadSVG, generateTeeSignsZip, downloadZip, initGrassImageCache, initHighgrassImageCache } from '../../utils/svgExport';
+import { initTreeImageCache } from '../../utils/treeSvg';
 import { TERRAIN_PATTERNS } from '../../types/terrain';
 import type { TerrainType } from '../../types/terrain';
 import { Button } from '../common/Button';
@@ -101,6 +102,13 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
         });
         await downloadZip(blob, `${courseName}_teesigns.zip`);
       } else {
+        // Ensure image caches are loaded before generating SVG
+        await Promise.all([
+          initGrassImageCache(),
+          initHighgrassImageCache(),
+          initTreeImageCache(),
+        ]);
+
         // Generate course map SVG
         const { width, height } = sizePresets[sizePreset];
         const svg = generateCourseSVG({
