@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
 import { useCourseStore, useEditorStore, useSettingsStore, useMapStore } from '../../stores';
-import { calculateDistance, formatDistance, getCenter } from '../../utils/geo';
-import type { Hole, TeeFeature, BasketFeature } from '../../types/course';
+import { calculateDistance, calculateLineLength, formatDistance, getCenter } from '../../utils/geo';
+import type { Hole, TeeFeature, BasketFeature, FlightLineFeature } from '../../types/course';
 
 function HoleCard({ hole, isActive }: { hole: Hole; isActive: boolean }) {
   const { t } = useTranslation();
@@ -10,19 +10,34 @@ function HoleCard({ hole, isActive }: { hole: Hole; isActive: boolean }) {
   const setActiveHole = useEditorStore((s) => s.setActiveHole);
   const flyTo = useMapStore((s) => s.flyTo);
 
-  // Find first tee and basket for distance calculation
+  // Find first tee, basket, and flight lines for distance calculation
   const tees = hole.features.filter((f) => f.properties.type === 'tee') as TeeFeature[];
   const firstTee = tees[0];
   const basket = hole.features.find((f) => f.properties.type === 'basket') as BasketFeature | undefined;
+  const flightLines = hole.features.filter((f) => f.properties.type === 'flightLine') as FlightLineFeature[];
 
-  // Calculate distance from first tee to basket
+  // Calculate distance - prefer flight line length over straight-line distance
   let distance: number | null = null;
   if (firstTee && basket) {
-    distance = calculateDistance(
-      firstTee.geometry.coordinates as [number, number],
-      basket.geometry.coordinates as [number, number],
-      units
-    );
+    // Look for a flight line starting from the first tee, or fall back to first flight line
+    const teeFlightLine = flightLines.find(
+      (fl) => fl.properties.startFeatureId === firstTee.properties.id
+    ) || flightLines[0];
+
+    if (teeFlightLine) {
+      // Use flight line length (accounts for intermediate nodes)
+      distance = calculateLineLength(
+        teeFlightLine.geometry.coordinates as [number, number][],
+        units
+      );
+    } else {
+      // Fallback to straight-line distance if no flight line exists
+      distance = calculateDistance(
+        firstTee.geometry.coordinates as [number, number],
+        basket.geometry.coordinates as [number, number],
+        units
+      );
+    }
   }
 
   const handleClick = () => {

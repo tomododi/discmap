@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Trash2, X } from 'lucide-react';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
-import { calculateDistance, formatDistance } from '../../utils/geo';
+import { calculateDistance, calculateLineLength, formatDistance } from '../../utils/geo';
 import type { DiscGolfFeature, TeeFeature, BasketFeature, DropzoneFeature, DropzoneAreaFeature, FlightLineFeature, AnnotationFeature, OBLineFeature, TerrainFeature, PathFeature, MandatoryFeature } from '../../types/course';
 import type { TreeFeature } from '../../types/trees';
 import { Button } from '../common/Button';
@@ -133,18 +133,33 @@ export function FeatureProperties() {
     setSelectedFeature(null);
   };
 
-  // Calculate distance for tee (to basket) - helper for distance display logic kept in main component if specific to layout context
-  // But actually TeeProperties doesn't need it inside the component if we pass it or if we keep the "header" logic here.
+  // Calculate distance for tee - prefer flight line length over straight-line distance
   let distanceToBasket: number | null = null;
-  if (feature.properties.type === 'tee') {
-    const basket = hole?.features.find((f) => f.properties.type === 'basket') as BasketFeature | undefined;
+  if (feature.properties.type === 'tee' && hole) {
+    const basket = hole.features.find((f) => f.properties.type === 'basket') as BasketFeature | undefined;
     if (basket) {
       const tee = feature as TeeFeature;
-      distanceToBasket = calculateDistance(
-        tee.geometry.coordinates as [number, number],
-        basket.geometry.coordinates as [number, number],
-        units
-      );
+      const flightLines = hole.features.filter((f) => f.properties.type === 'flightLine') as FlightLineFeature[];
+
+      // Look for a flight line starting from this tee
+      const teeFlightLine = flightLines.find(
+        (fl) => fl.properties.startFeatureId === tee.properties.id
+      ) || flightLines[0];
+
+      if (teeFlightLine) {
+        // Use flight line length (accounts for intermediate nodes)
+        distanceToBasket = calculateLineLength(
+          teeFlightLine.geometry.coordinates as [number, number][],
+          units
+        );
+      } else {
+        // Fallback to straight-line distance if no flight line exists
+        distanceToBasket = calculateDistance(
+          tee.geometry.coordinates as [number, number],
+          basket.geometry.coordinates as [number, number],
+          units
+        );
+      }
     }
   }
 

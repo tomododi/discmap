@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useCourseStore, useEditorStore, useSettingsStore } from '../../stores';
-import { calculateDistance, formatDistance } from '../../utils/geo';
-import type { TeeFeature, BasketFeature } from '../../types/course';
+import { calculateDistance, calculateLineLength, formatDistance } from '../../utils/geo';
+import type { TeeFeature, BasketFeature, FlightLineFeature } from '../../types/course';
 
 export function HoleEditor() {
   const { t } = useTranslation();
@@ -18,19 +18,34 @@ export function HoleEditor() {
   const hole = course.holes.find((h) => h.id === activeHoleId);
   if (!hole) return null;
 
-  // Find tees and basket
+  // Find tees, basket, and flight lines
   const tees = hole.features.filter((f) => f.properties.type === 'tee') as TeeFeature[];
   const basket = hole.features.find((f) => f.properties.type === 'basket') as BasketFeature | undefined;
+  const flightLines = hole.features.filter((f) => f.properties.type === 'flightLine') as FlightLineFeature[];
 
-  // Calculate distance from first tee to basket
+  // Calculate distance - prefer flight line length over straight-line distance
   const firstTee = tees[0];
   let distance: number | null = null;
   if (firstTee && basket) {
-    distance = calculateDistance(
-      firstTee.geometry.coordinates as [number, number],
-      basket.geometry.coordinates as [number, number],
-      units
-    );
+    // Look for a flight line starting from the first tee, or fall back to first flight line
+    const teeFlightLine = flightLines.find(
+      (fl) => fl.properties.startFeatureId === firstTee.properties.id
+    ) || flightLines[0];
+
+    if (teeFlightLine) {
+      // Use flight line length (accounts for intermediate nodes)
+      distance = calculateLineLength(
+        teeFlightLine.geometry.coordinates as [number, number][],
+        units
+      );
+    } else {
+      // Fallback to straight-line distance if no flight line exists
+      distance = calculateDistance(
+        firstTee.geometry.coordinates as [number, number],
+        basket.geometry.coordinates as [number, number],
+        units
+      );
+    }
   }
 
   const handleParChange = (par: number) => {
