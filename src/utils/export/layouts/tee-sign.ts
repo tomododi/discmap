@@ -322,22 +322,99 @@ export function generateTeeSignSVG(options: TeeSignOptions): string {
       mapRotation = geoAngleDeg - 90;
     }
 
-    // Add padding to bounds, accounting for rotation
-    const rotationRad = Math.abs(mapRotation) * Math.PI / 180;
-    const rotationExpansion = Math.abs(Math.cos(rotationRad)) + Math.abs(Math.sin(rotationRad));
-    const basePadding = 0.03;
-    const rotatedPadding = basePadding * rotationExpansion;
-    const lngPadding = (bounds.maxLng - bounds.minLng) * rotatedPadding;
-    const latPadding = (bounds.maxLat - bounds.minLat) * rotatedPadding;
-    bounds.minLng -= lngPadding;
-    bounds.maxLng += lngPadding;
-    bounds.minLat -= latPadding;
-    bounds.maxLat += latPadding;
+    // Calculate bounds expansion needed for rotation
+    // When a rectangle is rotated, its bounding box expands
+    const rotationRad = mapRotation * Math.PI / 180;
+    const cos = Math.abs(Math.cos(rotationRad));
+    const sin = Math.abs(Math.sin(rotationRad));
 
+    const origLngRange = bounds.maxLng - bounds.minLng;
+    const origLatRange = bounds.maxLat - bounds.minLat;
+
+    // Calculate the bounding box of the rotated rectangle
+    const rotatedLngRange = origLngRange * cos + origLatRange * sin;
+    const rotatedLatRange = origLngRange * sin + origLatRange * cos;
+
+    // Calculate how much to expand bounds for rotation
+    const lngExpansion = (rotatedLngRange - origLngRange) / 2;
+    const latExpansion = (rotatedLatRange - origLatRange) / 2;
+
+    bounds.minLng -= lngExpansion;
+    bounds.maxLng += lngExpansion;
+    bounds.minLat -= latExpansion;
+    bounds.maxLat += latExpansion;
+
+    // Calculate meters per degree for padding conversion
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const metersPerDegreeLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+    const metersPerDegreeLat = 110540;
+
+    // Add fixed padding for markers (in meters, then convert to degrees)
+    // Tee marker ~40px, Basket marker ~50px at scale 1.0
+    // We need to estimate the scale first to convert pixels to meters
+    const viewportAspect = mapAreaHeight / mapAreaWidth;
+    const boundsAspect = (bounds.maxLat - bounds.minLat) / (bounds.maxLng - bounds.minLng) * (metersPerDegreeLat / metersPerDegreeLng);
+
+    // Estimate scale based on which dimension is limiting
+    let estimatedMetersPerPixel: number;
+    if (boundsAspect > viewportAspect) {
+      // Height is limiting factor
+      const boundsHeightMeters = (bounds.maxLat - bounds.minLat) * metersPerDegreeLat;
+      estimatedMetersPerPixel = boundsHeightMeters / (mapAreaHeight - 10);
+    } else {
+      // Width is limiting factor
+      const boundsWidthMeters = (bounds.maxLng - bounds.minLng) * metersPerDegreeLng;
+      estimatedMetersPerPixel = boundsWidthMeters / (mapAreaWidth - 10);
+    }
+
+    // Add marker padding: 60 pixels worth of space on each edge (for tee/basket markers)
+    const markerPaddingPixels = 60;
+    const markerPaddingMeters = markerPaddingPixels * estimatedMetersPerPixel;
+    const markerPaddingLng = markerPaddingMeters / metersPerDegreeLng;
+    const markerPaddingLat = markerPaddingMeters / metersPerDegreeLat;
+
+    bounds.minLng -= markerPaddingLng;
+    bounds.maxLng += markerPaddingLng;
+    bounds.minLat -= markerPaddingLat;
+    bounds.maxLat += markerPaddingLat;
+
+    // Adjust bounds aspect ratio to match viewport for optimal fill
+    // This ensures the hole fills the available space
+    const viewportPadding = 20;
+    const contentWidth = mapAreaWidth - 2 * viewportPadding;
+    const contentHeight = mapAreaHeight - 2 * viewportPadding;
+    const targetAspect = contentHeight / contentWidth; // SVG aspect ratio (height/width)
+
+    const boundsLngRange = bounds.maxLng - bounds.minLng;
+    const boundsLatRange = bounds.maxLat - bounds.minLat;
+
+    // Convert bounds to meters for accurate aspect calculation
+    const boundsWidthMeters = boundsLngRange * metersPerDegreeLng;
+    const boundsHeightMeters = boundsLatRange * metersPerDegreeLat;
+    const currentAspect = boundsHeightMeters / boundsWidthMeters;
+
+    // Expand bounds in the smaller dimension to match viewport aspect ratio
+    if (currentAspect < targetAspect) {
+      // Bounds are wider than viewport - expand height
+      const newHeightMeters = boundsWidthMeters * targetAspect;
+      const heightExpansionMeters = (newHeightMeters - boundsHeightMeters) / 2;
+      const heightExpansionDeg = heightExpansionMeters / metersPerDegreeLat;
+      bounds.minLat -= heightExpansionDeg;
+      bounds.maxLat += heightExpansionDeg;
+    } else {
+      // Bounds are taller than viewport - expand width
+      const newWidthMeters = boundsHeightMeters / targetAspect;
+      const widthExpansionMeters = (newWidthMeters - boundsWidthMeters) / 2;
+      const widthExpansionDeg = widthExpansionMeters / metersPerDegreeLng;
+      bounds.minLng -= widthExpansionDeg;
+      bounds.maxLng += widthExpansionDeg;
+    }
+
+    // Create viewport
     const mapViewport: SVGViewport = {
       width: mapAreaWidth,
       height: mapAreaHeight,
-      padding: 5,
+      padding: viewportPadding,
       bounds,
     };
 
