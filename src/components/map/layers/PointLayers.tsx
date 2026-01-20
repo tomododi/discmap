@@ -96,7 +96,6 @@ export function PointLayers({
               rotation={feature.properties.rotation}
               opacity={feature.properties.opacity}
               selected={isSelected}
-              customColors={feature.properties.customColors}
               mapBearing={mapBearing}
               onRotate={(newRotation) => onTreeRotate(feature.properties.id, newRotation)}
             />

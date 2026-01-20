@@ -8,6 +8,7 @@ import { OnboardingProvider, OnboardingOverlay } from './components/onboarding';
 import { useCourseStore, useEditorStore, useSettingsStore } from './stores';
 import { loadAllCourses, saveCourse } from './utils/storage';
 import { createEmptyCourse } from './types/course';
+import { initTreeImageCache } from './utils/treeSvg';
 
 function App() {
   const { i18n } = useTranslation();
@@ -27,6 +28,9 @@ function App() {
 
   // Load courses from IndexedDB on mount
   useEffect(() => {
+    // Initialize tree image cache for SVG exports
+    initTreeImageCache();
+
     loadAllCourses().then((loadedCourses) => {
       if (Object.keys(loadedCourses).length > 0) {
         setCourses(loadedCourses);

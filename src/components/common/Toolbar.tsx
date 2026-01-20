@@ -30,7 +30,7 @@ import { ExportDialog } from '../export/ExportDialog';
 import { ImportDialog } from '../export/ImportDialog';
 import { downloadCourseJSON } from '../../utils/storage';
 import { TERRAIN_PATTERNS, type TerrainType } from '../../types/terrain';
-import { TREE_PATTERNS, type TreeType } from '../../types/trees';
+import { TREE_PATTERNS, type TreeType, getTreeImagePath } from '../../types/trees';
 import { getTerrainName, getTreeName } from '../../utils/i18nHelpers';
 
 interface ToolConfig {
@@ -285,7 +285,6 @@ export function Toolbar() {
                   <div className="text-xs font-medium text-gray-500 px-2 mb-2">{t('tree.types', 'Select Tree')}</div>
                   <div className="grid grid-cols-2 gap-1 mb-2">
                     {(Object.keys(TREE_PATTERNS) as TreeType[]).map((treeType) => {
-                      const pattern = TREE_PATTERNS[treeType];
                       const isActive = activeTreeType === treeType;
                       return (
                         <button
@@ -296,9 +295,10 @@ export function Toolbar() {
                             ${isActive ? 'bg-green-100 text-green-800' : 'hover:bg-gray-100 text-gray-700'}
                           `}
                         >
-                          <div
-                            className="w-4 h-4 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: pattern.defaultColors.primary }}
+                          <img
+                            src={getTreeImagePath(treeType)}
+                            alt={getTreeName(t, treeType)}
+                            className="w-6 h-6 object-contain flex-shrink-0"
                           />
                           <span className="text-xs truncate">{getTreeName(t, treeType)}</span>
                         </button>

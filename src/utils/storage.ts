@@ -1,22 +1,23 @@
 import { get, set, del, keys } from 'idb-keyval';
 import type { Course } from '../types/course';
 import { DEFAULT_COURSE_STYLE } from '../types/course';
+import { migrateTreeType } from '../types/trees';
 
 const STORAGE_KEY_PREFIX = 'discmap_course_';
 
-// Valid tree types (palm was removed)
-const VALID_TREE_TYPES = ['oak', 'maple', 'pine', 'spruce', 'birch'];
-
 // Migrate course to include new properties (style + course-level features)
 function migrateCourse(course: Course): Course {
-  // Migrate tree features - convert invalid tree types (like removed "palm") to "oak"
+  // Migrate tree features - convert old tree types (oak, maple, etc.) to new ones (tree1-4)
   const migratedTreeFeatures = (course.treeFeatures ?? []).map((tree) => {
-    if (!VALID_TREE_TYPES.includes(tree.properties.treeType)) {
+    const migratedType = migrateTreeType(tree.properties.treeType);
+    if (migratedType !== tree.properties.treeType) {
       return {
         ...tree,
         properties: {
           ...tree.properties,
-          treeType: 'oak' as const,
+          treeType: migratedType,
+          // Remove old customColors as they don't apply to image-based trees
+          customColors: undefined,
         },
       };
     }

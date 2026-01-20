@@ -58,6 +58,20 @@ export async function generateTeeSignsZip(
     }
   }
 
+  // Add tree images (used by forest terrain and tree features)
+  const treeImages = ['tree1.png', 'tree2.png', 'tree3.png', 'tree4.png'];
+  for (const treeImage of treeImages) {
+    try {
+      const response = await fetch(`/${treeImage}`);
+      if (response.ok) {
+        const treeBlob = await response.blob();
+        zip.file(treeImage, treeBlob);
+      }
+    } catch {
+      // Tree image not available, skip
+    }
+  }
+
   return zip.generateAsync({ type: 'blob' });
 }
 

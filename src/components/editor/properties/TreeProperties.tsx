@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { TreeDeciduous } from 'lucide-react';
 import { RotationKnob } from '../../common/RotationKnob';
 import type { TreeFeature } from '../../../types/course';
-import { TREE_PATTERNS, type TreeType } from '../../../types/trees';
+import { TREE_PATTERNS, type TreeType, getTreeImagePath } from '../../../types/trees';
 import { getTreeName } from '../../../utils/i18nHelpers';
 import type { FeaturePropertyProps } from './types';
 
@@ -11,15 +10,14 @@ export function TreeProperties({ feature, onUpdate }: FeaturePropertyProps<TreeF
 
   return (
     <div className="space-y-3">
-      {/* Current tree type display */}
+      {/* Current tree type display with image preview */}
       <div className="bg-green-50 rounded-lg p-3 flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{
-            backgroundColor: TREE_PATTERNS[feature.properties.treeType]?.defaultColors.primary || '#228b22',
-          }}
-        >
-          <TreeDeciduous size={20} className="text-white" />
+        <div className="w-12 h-12 flex items-center justify-center">
+          <img
+            src={getTreeImagePath(feature.properties.treeType)}
+            alt={getTreeName(t, feature.properties.treeType)}
+            className="max-w-full max-h-full object-contain"
+          />
         </div>
         <div>
           <div className="text-xs text-green-600 font-medium">{t('tree.types', 'Tree Type')}</div>
@@ -29,29 +27,29 @@ export function TreeProperties({ feature, onUpdate }: FeaturePropertyProps<TreeF
         </div>
       </div>
 
-      {/* Tree type selector */}
+      {/* Tree type selector with image previews */}
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-2">
           {t('tree.changeType', 'Change Tree Type')}
         </label>
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-2 gap-2">
           {(Object.keys(TREE_PATTERNS) as TreeType[]).map((treeType) => {
-            const pattern = TREE_PATTERNS[treeType];
             const isActive = feature.properties.treeType === treeType;
             return (
               <button
                 key={treeType}
                 onClick={() => onUpdate({ treeType, label: getTreeName(t, treeType) })}
                 className={`
-                  flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors
-                  ${isActive ? 'bg-green-100 text-green-800 ring-2 ring-green-500' : 'hover:bg-gray-100 text-gray-700'}
+                  flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-colors
+                  ${isActive ? 'bg-green-100 text-green-800 ring-2 ring-green-500' : 'hover:bg-gray-100 text-gray-700 border border-gray-200'}
                 `}
               >
-                <div
-                  className="w-4 h-4 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: pattern.defaultColors.primary }}
+                <img
+                  src={getTreeImagePath(treeType)}
+                  alt={getTreeName(t, treeType)}
+                  className="w-8 h-8 object-contain"
                 />
-                <span className="text-xs truncate">{getTreeName(t, treeType)}</span>
+                <span className="text-xs font-medium">{getTreeName(t, treeType)}</span>
               </button>
             );
           })}
@@ -88,7 +86,7 @@ export function TreeProperties({ feature, onUpdate }: FeaturePropertyProps<TreeF
           <RotationKnob
             value={feature.properties.rotation ?? 0}
             onChange={(rotation) => onUpdate({ rotation })}
-            color={TREE_PATTERNS[feature.properties.treeType]?.defaultColors.primary || '#228b22'}
+            color="#22c55e"
             size={80}
           />
         </div>
@@ -113,91 +111,6 @@ export function TreeProperties({ feature, onUpdate }: FeaturePropertyProps<TreeF
           <span>10%</span>
           <span>50%</span>
           <span>100%</span>
-        </div>
-      </div>
-
-      {/* Custom colors */}
-      <div className="space-y-2">
-        <label className="block text-xs font-medium text-gray-700">
-          {t('tree.customColors', 'Custom Colors')}
-        </label>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-600 w-16">{t('tree.primary', 'Primary')}</span>
-          <input
-            type="color"
-            value={feature.properties.customColors?.primary ||
-              TREE_PATTERNS[feature.properties.treeType]?.defaultColors.primary || '#228b22'}
-            onChange={(e) => onUpdate({
-              customColors: {
-                ...feature.properties.customColors,
-                primary: e.target.value
-              }
-            })}
-            className="w-8 h-8 rounded cursor-pointer border border-gray-300"
-          />
-          <button
-            onClick={() => onUpdate({
-              customColors: {
-                ...feature.properties.customColors,
-                primary: undefined
-              }
-            })}
-            className="text-xs text-gray-500 hover:text-gray-700"
-          >
-            {t('actions.reset')}
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-600 w-16">{t('tree.secondary', 'Shadow')}</span>
-          <input
-            type="color"
-            value={feature.properties.customColors?.secondary ||
-              TREE_PATTERNS[feature.properties.treeType]?.defaultColors.secondary || '#1a6b1a'}
-            onChange={(e) => onUpdate({
-              customColors: {
-                ...feature.properties.customColors,
-                secondary: e.target.value
-              }
-            })}
-            className="w-8 h-8 rounded cursor-pointer border border-gray-300"
-          />
-          <button
-            onClick={() => onUpdate({
-              customColors: {
-                ...feature.properties.customColors,
-                secondary: undefined
-              }
-            })}
-            className="text-xs text-gray-500 hover:text-gray-700"
-          >
-            {t('actions.reset')}
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-600 w-16">{t('tree.accent', 'Accent')}</span>
-          <input
-            type="color"
-            value={feature.properties.customColors?.accent ||
-              TREE_PATTERNS[feature.properties.treeType]?.defaultColors.accent || '#32cd32'}
-            onChange={(e) => onUpdate({
-              customColors: {
-                ...feature.properties.customColors,
-                accent: e.target.value
-              }
-            })}
-            className="w-8 h-8 rounded cursor-pointer border border-gray-300"
-          />
-          <button
-            onClick={() => onUpdate({
-              customColors: {
-                ...feature.properties.customColors,
-                accent: undefined
-              }
-            })}
-            className="text-xs text-gray-500 hover:text-gray-700"
-          >
-            {t('actions.reset')}
-          </button>
         </div>
       </div>
     </div>

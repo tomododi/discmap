@@ -290,7 +290,7 @@ export function generateCourseSVG(options: SVGExportOptions): string {
         props.treeType,
         props.size ?? 1,
         props.rotation ?? 0,
-        props.customColors,
+        undefined,
         props.opacity ?? 1,
         densityMetrics.markerScale
       );
@@ -344,18 +344,44 @@ export function generateCourseSVG(options: SVGExportOptions): string {
     };
 
     // Tree types distribution
-    const treeTypes: TreeType[] = ['oak', 'maple', 'pine', 'spruce', 'birch'];
+    const treeTypes: TreeType[] = ['tree1', 'tree2', 'tree3', 'tree4'];
     const pickTreeType = (): TreeType => treeTypes[Math.floor(random() * treeTypes.length)];
 
-    // Calculate number of trees based on area
-    const baseDensity = 15; // Trees per 10000 sq pixels
-    const treeCount = Math.floor((area / 10000) * baseDensity);
-    const minSpacing = 20 * densityMetrics.markerScale;
+    // Distance from point to line segment
+    const distToSegment = (px: number, py: number, x1: number, y1: number, x2: number, y2: number): number => {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const lenSq = dx * dx + dy * dy;
+      if (lenSq === 0) return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+      const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+      const projX = x1 + t * dx;
+      const projY = y1 + t * dy;
+      return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+    };
+
+    // Minimum distance from point to polygon edge
+    const distToPolygonEdge = (px: number, py: number): number => {
+      let minDist = Infinity;
+      for (let i = 0; i < svgPolygon.length; i++) {
+        const j = (i + 1) % svgPolygon.length;
+        const d = distToSegment(px, py, svgPolygon[i][0], svgPolygon[i][1], svgPolygon[j][0], svgPolygon[j][1]);
+        if (d < minDist) minDist = d;
+      }
+      return minDist;
+    };
+
+    // Calculate number of trees based on area - dense forest
+    const baseDensity = 25; // Trees per 10000 sq pixels
+    const treeCount = Math.max(3, Math.floor((area / 10000) * baseDensity));
+    const minSpacing = 18 * densityMetrics.markerScale;
+    // Edge margin proportional to polygon size, but minimum for small areas
+    const maxDim = Math.max(polyWidth, polyHeight);
+    const edgeMargin = Math.min(15, maxDim * 0.1) * densityMetrics.markerScale;
 
     // Generate tree placements
     const placements: Array<{ x: number; y: number; type: TreeType; size: number; rotation: number }> = [];
     let attempts = 0;
-    const maxAttempts = treeCount * 15;
+    const maxAttempts = treeCount * 20;
 
     while (placements.length < treeCount && attempts < maxAttempts) {
       attempts++;
@@ -364,7 +390,10 @@ export function generateCourseSVG(options: SVGExportOptions): string {
 
       if (!pointInPoly(x, y)) continue;
 
-      // Check spacing
+      // Check distance from polygon edge
+      if (distToPolygonEdge(x, y) < edgeMargin) continue;
+
+      // Check spacing from other trees
       let tooClose = false;
       for (const p of placements) {
         const dx = p.x - x;
@@ -380,7 +409,7 @@ export function generateCourseSVG(options: SVGExportOptions): string {
         x,
         y,
         type: pickTreeType(),
-        size: 0.6 + random() * 0.8, // Size variation
+        size: 1.0 + random() * 0.5, // Size variation
         rotation: random() * 360,
       });
     }

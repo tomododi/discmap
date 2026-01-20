@@ -91,6 +91,6 @@ export const DEFAULT_EDITOR_STATE: EditorState = {
   sidebarCollapsed: false,
   pendingFlightLine: null,
   activeTerrainType: 'forest',
-  activeTreeType: 'oak',
+  activeTreeType: 'tree1',
   treeBrushSettings: { ...DEFAULT_TREE_BRUSH_SETTINGS },
 };

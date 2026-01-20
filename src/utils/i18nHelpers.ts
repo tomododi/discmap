@@ -15,11 +15,10 @@ const TERRAIN_TRANSLATION_KEYS: Record<TerrainType, string> = {
 
 // Tree type to translation key mapping
 const TREE_TRANSLATION_KEYS: Record<TreeType, string> = {
-  oak: 'tree.oak',
-  maple: 'tree.maple',
-  pine: 'tree.pine',
-  spruce: 'tree.spruce',
-  birch: 'tree.birch',
+  tree1: 'tree.tree1',
+  tree2: 'tree.tree2',
+  tree3: 'tree.tree3',
+  tree4: 'tree.tree4',
 };
 
 // Get translated terrain name
@@ -34,9 +33,8 @@ export function getTerrainCategoryName(t: TFunction, category: string): string {
 
 // Get translated tree name
 export function getTreeName(t: TFunction, treeType: TreeType): string {
-  // Fallback to oak if tree type is unknown
-  const key = TREE_TRANSLATION_KEYS[treeType] ?? TREE_TRANSLATION_KEYS.oak;
-  return t(key) || treeType;
+  const key = TREE_TRANSLATION_KEYS[treeType] ?? TREE_TRANSLATION_KEYS.tree1;
+  return t(key) || `Tree ${treeType.replace('tree', '')}`;
 }
 
 // Get translated tree category name

@@ -96,6 +96,71 @@ export function generateBasketSVG(
   `;
 }
 
+// Top-down view of basket for tee signs - detailed chain pattern
+export function generateBasketTopViewSVG(
+  x: number,
+  y: number,
+  style: CourseStyle,
+  scale: number = 1
+): string {
+  const color = style.basketTopColor;
+  const darkColor = darkenColor(color);
+  const s = scale;
+
+  // Basket dimensions
+  const outerRadius = 18 * s;
+  const rimWidth = 3 * s;
+  const chainAreaRadius = outerRadius - rimWidth;
+  const innerRing1 = chainAreaRadius * 0.75;
+  const innerRing2 = chainAreaRadius * 0.5;
+  const centerRadius = 4 * s;
+
+  // Chain configuration
+  const outerChainCount = 12;
+  const innerChainCount = 6;
+
+  // Generate outer chain spokes (12 chains from rim to inner ring)
+  const outerChains: string[] = [];
+  for (let i = 0; i < outerChainCount; i++) {
+    const angle = (i * 360 / outerChainCount) * Math.PI / 180;
+    const x1 = chainAreaRadius * Math.cos(angle);
+    const y1 = chainAreaRadius * Math.sin(angle);
+    const x2 = innerRing2 * Math.cos(angle);
+    const y2 = innerRing2 * Math.sin(angle);
+    outerChains.push(`<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${darkColor}" stroke-width="${1.5 * s}" />`);
+  }
+
+  // Generate inner chain spokes (6 chains from inner ring to center)
+  const innerChains: string[] = [];
+  for (let i = 0; i < innerChainCount; i++) {
+    const angle = (i * 360 / innerChainCount + 30) * Math.PI / 180;
+    const x1 = innerRing2 * Math.cos(angle);
+    const y1 = innerRing2 * Math.sin(angle);
+    const x2 = centerRadius * Math.cos(angle);
+    const y2 = centerRadius * Math.sin(angle);
+    innerChains.push(`<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${darkColor}" stroke-width="${1.5 * s}" />`);
+  }
+
+  return `
+    <g transform="translate(${x}, ${y})">
+      <!-- Outer rim -->
+      <circle cx="0" cy="0" r="${outerRadius}" fill="${color}" />
+      <!-- Chain area background -->
+      <circle cx="0" cy="0" r="${chainAreaRadius}" fill="${color}" opacity="0.7" />
+      <!-- Concentric chain rings -->
+      <circle cx="0" cy="0" r="${innerRing1}" fill="none" stroke="${darkColor}" stroke-width="${1.2 * s}" />
+      <circle cx="0" cy="0" r="${innerRing2}" fill="none" stroke="${darkColor}" stroke-width="${1.2 * s}" />
+      <!-- Outer radial chains -->
+      ${outerChains.join('\n      ')}
+      <!-- Inner radial chains -->
+      ${innerChains.join('\n      ')}
+      <!-- Center pole -->
+      <circle cx="0" cy="0" r="${centerRadius}" fill="${darkColor}" />
+      <circle cx="0" cy="0" r="${centerRadius * 0.5}" fill="${color}" />
+    </g>
+  `;
+}
+
 export function generateDropzoneSVG(
   x: number,
   y: number,
